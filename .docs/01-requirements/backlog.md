@@ -26,6 +26,8 @@ Section 0 is the priority table; Sections 4–9 are the full requirement entries
 | FR-006 | Explanation of calculated/flagged results | Must |
 | FR-007 | In-place "what-if" editing with recalculation | Must |
 | FR-008 | Export of displayed formula information | Should |
+| FR-009 | Odour profile chart | Should |
+| FR-010 | Evaporation curve over time | Should |
 | NFR-001 | Single-screen formula comprehension | Should |
 | NFR-002 | Immediate recalculation feedback, no reload/save gate | Should |
 | NFR-003 | Restricted access model, no public self-service | Must |
@@ -42,6 +44,7 @@ Section 0 is the priority table; Sections 4–9 are the full requirement entries
 | SEC-002 | No confidential data in logs/errors/exports beyond scope | Must |
 | SEC-003 | Access-log implementation controls (append-only, tamper-evident) | Must |
 | SEC-004 | Credential and session handling | Must |
+| SEC-005 | External-user trust boundary (org isolation, client portal) | Must (conditional) |
 | PRIV-001 | Consent recorded before storing account personal data | Must |
 | PRIV-002 | Data-subject rights endpoints (export/correct/delete own data) | Must |
 | PRIV-003 | Data minimisation on account fields | Must |
@@ -256,6 +259,18 @@ For each material (and relevant combination) in an opened formula, the system mu
 check applicable restrictions/limits from the approved rule set and visibly distinguish
 "within limit," "at or near limit," "over limit," and "insufficient data."
 
+Two inputs are required for that comparison to be correct, and a formula without them cannot be
+checked:
+
+- **Product category.** IFRA limits differ per product category, so the same material may be
+  within limit in one category and over limit in another. The formula must declare the category
+  it is checked against.
+- **Concentrate versus finished product.** IFRA limits are expressed as a percentage of the
+  finished consumer product, while a formula is normally a concentrate that is later diluted. The
+  dilution must be applied before comparing, or nearly every material reports as over limit.
+
+If either is missing, the result is `insufficient data` rather than an unqualified pass or fail.
+
 **Precondition:**
 Rule/threshold data exists for the relevant material(s) in the approved dataset. In the sample
 supplied by the stakeholder, restriction data comes from the IFRA Standards (51st Amendment) and
@@ -272,8 +287,17 @@ the per-substance `EU CosIng` status — see `.docs/00-context/dataset-structure
   58; CER-001).
 - Given a material pair with no known interaction rule, then the system shows "insufficient
   data" rather than an assumed status (rule.md rule 59).
+- Given a formula with no declared product category, or no dilution figure where a limit is
+  expressed against the finished product, then the affected checks return `insufficient data`
+  and say which input is missing. The dilution is never assumed to be 100%.
+- Given a material at a known percentage of the concentrate, the value compared against a
+  finished-product limit is the diluted percentage, and both figures are shown to the user so the
+  comparison can be checked by hand (FR-006).
+- A cited limit names its regulation and version (for example IFRA Standards, 51st Amendment),
+  not just a number.
 
-**Traceability:** Interview pain point 3; rule.md rules 58–59.
+**Traceability:** Interview pain point 3; rule.md rules 58–59. Product-category and dilution
+inputs added 2026-09-10 from the supplied regulatory data; design in `data-model.md` §5.
 
 ---
 
@@ -383,6 +407,72 @@ User is viewing a formula they are authorized to see.
 
 ---
 
+### FR-009: Odour Profile Chart
+
+**Problem:**
+A formula's material list does not convey what the formula smells like overall. Grouping the
+formula's materials by odour family gives that at a glance.
+
+**User:**
+Formulator.
+
+**Requirement:**
+The formula view must display the formula's composition grouped by odour type, as a bar chart.
+Each material's contribution is derived from the supplied odour fields (`TGSC Odor Type`, and
+detection threshold where odour-unit weighting is used). The chart must state which weighting it
+applies, since mass percentage and odour-unit weighting give visibly different results from the
+same data.
+
+**Precondition:**
+Odour type data exists for the materials in the formula.
+
+**Acceptance Criteria:**
+- Given a formula whose materials carry odour types, when it is opened, then a bar chart shows
+  each odour type's share, and the weighting basis is stated on the chart.
+- Given a material with no odour type in the dataset, then it is reported as `insufficient data`
+  and is not silently assigned to a family (rule.md rule 59; CER-002).
+
+**Traceability:** Team scope decision 2026-09-10 (MVP formula view). Not evidenced by the
+2026-09-02 interview — flagged for honesty about sourcing. Design: `data-model.md` §3.
+
+---
+
+### FR-010: Evaporation Curve over Time
+
+**Problem:**
+Materials evaporate at very different rates, so a formula's character changes over the hours after
+application. A static list cannot show that.
+
+**User:**
+Formulator.
+
+**Requirement:**
+The formula view must display, per material, a curve of its predicted intensity over time, with a
+time scale the user can adjust. Curves are computed from the supplied volatility fields (Antoine
+coefficients, vapour pressure, enthalpy of vaporisation, diffusion coefficient, molecular weight)
+against detection threshold. Every curve must cite the equation and the assumptions used
+(CER-001), including any assumption not present in the dataset, such as surface area or airflow.
+
+**Precondition:**
+Volatility parameters exist for the material, and the requested temperature falls inside the
+stated Antoine validity range.
+
+**Acceptance Criteria:**
+- Given a formula whose materials carry volatility parameters, when the user requests a time
+  range, then a curve per material is returned for that range without a page reload (NFR-002).
+- Given a material lacking volatility parameters, or a temperature outside its stated validity
+  range, then the result is `insufficient data` or an explicitly flagged extrapolation — never an
+  unmarked estimate (rule.md rule 59; CER-002).
+- The equation and assumptions behind a displayed curve are retrievable by the user (FR-006).
+
+**Open dependency:** the evaporation model itself is not yet chosen (`project-context.md` §29;
+`data-model.md` §7 decision 4). This requirement is not ready to implement until it is.
+
+**Traceability:** Team scope decision 2026-09-10 (MVP formula view). Not evidenced by the
+2026-09-02 interview — flagged for honesty about sourcing. Design: `data-model.md` §4.
+
+---
+
 ## 5. Non-Functional Requirements
 
 ### NFR-001: Single-Screen Formula Comprehension
@@ -441,8 +531,9 @@ fragrance-engine.com's public self-service model.
 ### NFR-004: Core Workflow Independent of Any AI/Model Service
 
 **Requirement:**
-Login, formula list, formula view, calculation, rule-highlighting, and export (FR-001–FR-008)
-must function correctly even if an AI/model service is unavailable.
+Login, formula list, formula view, calculation, rule-highlighting, export, and the odour and
+evaporation charts (FR-001–FR-010) must function correctly even if an AI/model service is
+unavailable.
 
 **Reason:**
 CLAUDE.md "Offline/Core Workflow"; rule.md rule 62 (LR4). Since no generative-AI feature is in
@@ -452,9 +543,9 @@ recorded so a future AI-assisted feature cannot silently introduce a hard depend
 workflow.
 
 **Acceptance Criteria:**
-- No code path in FR-001–FR-008 calls an external AI/LLM service.
+- No code path in FR-001–FR-010 calls an external AI/LLM service.
 - If a future AI-assisted feature is added elsewhere, its unavailability must not block
-  FR-001–FR-008.
+  FR-001–FR-010.
 
 ---
 
@@ -631,9 +722,15 @@ saved formulas never leave approved infrastructure; the repository stays private
 Every read of a formula (list or detail) must be authorized server-side against the requesting
 user's identity/role. Hiding a link or button on the client is not access control.
 
+Authorization is evaluated against the organisation on the server-side session, never against an
+organisation identifier supplied by the client. Every tenant-scoped query filters on that value.
+
 **Acceptance Criteria:**
 - A direct request for a formula id the user is not authorized for is denied server-side,
   regardless of client UI state (rule.md rule 21; CLAUDE.md Security Rules).
+- A request carrying its own organisation identifier is refused rather than honoured.
+- Authorization is checked against the requested record, not only the route, so a permitted route
+  cannot return another organisation's formula.
 
 #### SEC-002: No Confidential Data in Logs/Errors/Exports Beyond Scope
 
@@ -670,6 +767,29 @@ state.
 - No password or password hash appears in any log or error payload.
 - A request with an invalid/expired session is rejected server-side even if the client believes
   it is logged in.
+
+#### SEC-005: External-User Trust Boundary
+
+**Requirement:**
+SEC-001–SEC-004, LR5, IP-001 and IP-002 were written when every authenticated user was the
+customer's own staff. The stakeholder's 2026-09-10 access model adds external clients, who hold a
+valid login while sitting outside the customer's company. Server-side authorization therefore
+becomes the only separation between one organisation's formulas and another's, and must be
+designed for that rather than only for unauthenticated attackers.
+
+**Acceptance Criteria:**
+- An external user reaching a formula belonging to another organisation receives a response
+  indistinguishable from "not found," so formula identifiers cannot be probed by enumeration.
+- Document downloads pass the same record-level authorization check as formula reads; no storage
+  reference is served on obscurity alone.
+- Access-log entries distinguish external from internal access (LR2).
+- No external role has access to what-if recalculation (FR-007), which reveals how a formula
+  responds to change.
+
+**Traceability:** `project-context.md` §2 access-model revision (2026-09-10); design in
+`.docs/02-design/roles-permissions.md` §6. Priority Must, conditional on the client portal being
+in scope for the cycle that ships it. Not triggered in this cycle: the team scope decision of
+2026-09-16 keeps the client portal and all external accounts out.
 
 ### Privacy
 
@@ -797,11 +917,15 @@ These cannot be resolved from the single interview available and must not be gue
    import from an existing file/spreadsheet, or direct database insertion by the domain expert?
    Open Question.
 2. **Account provisioning.** Since there is no public signup (NFR-003), how are internal user
-   accounts created, and by whom? Open Question.
+   accounts created, and by whom? The stakeholder's 2026-09-10 answer (`project-context.md` §2)
+   says internal and external accounts are provisioned differently, which narrows this but does
+   not name the mechanism. Still Open.
 3. **Formula visibility/sharing model.** rule.md rule 21 says "a perfumer may read only their own
-   profile and their own formulas," but it is unclear whether "own formulas" means only formulas
-   that user personally created, or all formulas within the customer's organization/team. This
-   affects FR-002/SEC-001's exact authorization rule. Open Question.
+   profile and their own formulas," but it was unclear whether "own formulas" means only formulas
+   that user personally created, or all formulas within the customer's organization/team. The
+   2026-09-10 stakeholder answer says visibility is **organisation-scoped**, not per-individual.
+   Remaining question is how that reconciles with rule 21's narrower wording, and what an
+   external client may see of an organisation's formulas.
 4. **Whether an explicit "I agree" step exists anywhere in the login/provisioning flow**
    (privacy notice acceptance, terms). This determines whether LR3 is triggered now or later.
    Open Question.

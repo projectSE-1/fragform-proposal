@@ -31,7 +31,9 @@ flowchart LR
 
 What it shows: which actor can do what. The core use case ("View & evaluate a formula") is
 central and includes Login, matching the journey's step order. Domain Expert is not shown here —
-this cycle has no in-app use case for that role (see note above).
+this cycle has no in-app use case for that role (see note above). The odour profile chart and
+evaporation curve (FR-009, FR-010) are part of UC3, not separate use cases. Formulator is a user
+with the `member` role (`roles-permissions.md` §3).
 
 ```mermaid
 flowchart LR

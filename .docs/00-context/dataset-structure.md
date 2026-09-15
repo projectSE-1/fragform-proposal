@@ -57,5 +57,7 @@ Still open:
 - The **evaporation model itself** (`project-context.md` §29). Having the inputs does not choose
   the equations, the mixture assumptions, or the surface/airflow assumptions any curve would
   need. That remains a domain decision.
-- Whether any visualisation of evaporation over time is in scope. Nothing in FR-001–FR-008
-  currently displays it.
+
+Resolved since this document was written: evaporation over time **is** in scope, as FR-010 (team
+scope decision, 2026-09-10), alongside the odour profile chart as FR-009. The model choice above
+remains open and gates FR-010.

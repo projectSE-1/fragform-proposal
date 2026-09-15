@@ -1,6 +1,6 @@
 # User Journey — View & Evaluate a Formula
 
-This is the one core workflow for this build cycle (`backlog.md` Section 4, FR-001–FR-008).
+This is the one core workflow for this build cycle (`backlog.md` Section 4, FR-001–FR-010).
 Every diagram and prototype screen in this design set traces back to these same steps, using the
 same actor: **Formulator**.
 

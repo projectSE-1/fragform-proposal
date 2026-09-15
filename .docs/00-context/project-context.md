@@ -76,6 +76,50 @@ generate and order a custom fragrance, this system has **no public self-service
 generation/ordering flow**. Access is restricted to our customer's own users. This narrows the
 account/auth model (no public signup) and is a confirmed scope decision, not an assumption.
 
+**Access model, stakeholder revision (2026-09-10):** asked directly who is able to use the app,
+the stakeholder described two user groups, which widens the 2026-09-02 note above. Recorded here
+as stakeholder input; the build-cycle scope is still to be negotiated and is **not** yet an
+approved requirement.
+
+*Group 1 — Internal team (perfumer lab).* Perfumer, R&D, lab staff. Described as managing the
+raw-material database (essential oils, aroma chemicals), designing formulas, calculating
+concentration and proportion, recording experiment history, and managing technical documents
+(MSDS/CoA).
+
+*Group 2 — External users / clients.* Customers who buy or rent the system, B2B clients ordering
+production, or outside manufacturers. Two modes were described:
+
+- **SaaS mode** — each customer gets their own workspace for their organisation's formulas and
+  material inventory, with data kept separate from other tenants.
+- **Client portal** — a client views the formulas they ordered, adjusts note/aroma profile within
+  defined bounds, and downloads formula certification documents.
+
+What this settles: formula visibility is **organisation-scoped**, not per-individual (Open
+Question 3 in `backlog.md`), and internal versus external accounts are provisioned differently
+(Open Question 2). It also confirms MSDS/CoA handling is a real need, matching the per-supplier
+documents in the supplied sample (`dataset-structure.md` §3).
+
+What it conflicts with, and must be negotiated before any of it becomes a requirement:
+
+- "One customer's internal use" above. A multi-tenant SaaS mode is a different product shape.
+- Formula authoring from an empty state, currently out of scope (`backlog.md` Open Question 1).
+  "Designing formulas" is authoring.
+- Raw-material database management. Nothing in FR-001–FR-010 edits material data; the dataset is
+  currently read-only input.
+- "Within defined bounds" for client profile adjustment is undefined. Bounds set by whom, against
+  what limit, is an open domain question.
+
+Security implication to carry into design regardless of scope: a client portal puts a person from
+**outside the customer's company** behind a login. Every owner-IP protection (LR5, IP-001,
+IP-002) currently assumes all authenticated users are the customer's own staff. That assumption
+stops holding, and server-side authorisation (SEC-001) becomes the only thing separating one
+organisation's formulas from another's.
+
+**Outcome, team scope decision (2026-09-16):** this build cycle serves the internal team only.
+The client portal and SaaS mode are deferred, and supplier document download goes with them.
+Permissions are checked per action, with two roles (`member`, `admin`). See
+`.docs/02-design/roles-permissions.md` §2–§3.
+
 ---
 
 # 3. Project Problem
@@ -115,6 +159,10 @@ documents — this interview is a real input into that process, not the final sp
 
 The project is primarily intended for users involved in fragrance formulation and evaluation.
 
+The stakeholder's 2026-09-10 answer groups these into an internal team and external clients (see
+§2, access-model revision). The role descriptions below predate that answer and are kept as the
+longer-form notes; where they disagree, the 2026-09-10 note is the newer stakeholder input.
+
 Potential roles discussed include:
 
 ## Lab User / Formulator
@@ -139,15 +187,8 @@ Typical activities may include:
 
 A person with authoritative knowledge of perfumery/chemistry/regulatory rules.
 
-The domain expert is important because the software must not independently invent or silently change chemistry or regulatory rules.
-
-Domain experts should be able to approve changes to:
-
-* Chemistry rules
-* Thresholds
-* Material groups
-* Interaction rules
-* Other domain-specific calculation logic
+Supplies the material and rule dataset the engine operates on (see `dataset-structure.md`). Does
+not use the product itself in the current build cycle.
 
 ## Administrator
 
