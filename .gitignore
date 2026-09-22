@@ -1,0 +1,22 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Go
+*.exe
+*.test
+vendor/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp

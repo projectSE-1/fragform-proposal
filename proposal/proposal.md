@@ -1,7 +1,7 @@
 # AI Perfumery Engine — Project Proposal (Updated)
 
 **Course:** 1305493 Software Engineering Case Studies, 1/2569
-**Team / Company name:** 404 Fragrance Not Found
+**Team / Company name:** projectSE-1
 
 ## Problem Statement
 
