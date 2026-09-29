@@ -13,6 +13,7 @@
 | Approved requirements | `.docs/01-requirements/backlog.md` |
 | Approved design (features, journeys, prototype, diagrams) | `.docs/02-design/` |
 | Database schema design for the MVP formula view | `.docs/02-design/data-model.md` |
+| Calculation engine: result contract, pipeline, engine decisions, build order | `.docs/02-design/calculation-engine.md` |
 | Roles, permissions, org isolation | `.docs/02-design/roles-permissions.md` |
 | Legal/compliance rules (authoritative) | `.docs/03-compliance/rule.md` |
 | Legal requirements traced from W2 | `.docs/03-compliance/legal-requirements.md` |

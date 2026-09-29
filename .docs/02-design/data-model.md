@@ -98,6 +98,10 @@ curve for roughly twenty materials at a hundred points costs microseconds, so co
 request stays cheap and stays consistent when the model changes. Storing precomputed points would
 fix the time scale at import and require a full recompute whenever the equations are revised.
 
+During a what-if edit (FR-007) the curves must come from the overlaid snapshot, not the stored
+formula (`calculation-engine.md` §3). The GET route above takes no overrides, so its final shape
+is still open.
+
 **Import warning: Antoine coefficients are not interchangeable between sources.** Published
 coefficients differ in logarithm base (log₁₀ or ln), pressure unit (Pa or mmHg), and temperature
 unit (K or °C). The sample data uses `log10(P/Pa) = A - B/(T/K + C)`. Applying one equation to
@@ -107,7 +111,7 @@ plausible curve. Either normalise every row to a single form during import, or b
 
 **Range handling.** The sample's validity range is 345–523 K, while skin is near 305 K, so any
 skin-temperature curve is an extrapolation. Whether that returns `insufficient data` (CER-002) or
-a flagged estimate is an open decision.
+a flagged estimate is an open decision (§7, decision 5).
 
 **Not in the dataset.** Evaporation from a surface also depends on surface area and airflow.
 Those are model assumptions with stated defaults, not values that can be looked up.
@@ -145,6 +149,13 @@ material_restrictions
 
 FR-005 then reduces to a single query: match the formula's product category, compare the computed
 percentage against `max_concentration_pct`, classify as within / near / over / insufficient.
+Two parts of that classification are not defined yet: the near-limit band (§7, decision 7), and
+how rows with no numeric limit (`prohibited`, `declarable`, `specification`, `listed`) map onto
+the four states (§7, decision 10).
+
+**Category codes.** Public IFRA Standards split several of the 12 categories into sub-categories
+(5A–5D, for example). Check the supplied 51st Amendment sheet before fixing
+`product_categories.code` as a number; it may need to hold codes such as `5A`.
 
 ### Two consequences for the requirements
 
@@ -207,16 +218,26 @@ awkward to add later.
 
 ## 7. Open decisions
 
-| # | Decision | Blocks |
-|---|---|---|
-| 1 | Quantities stored in grams, or a density column obtained | Concentration, if any formula uses volume |
-| 2 | Odour bar height: mass percentage or odour units | Odour chart |
-| 3 | Numeric mapping for categorical odour strength | Odour chart, if strength is used |
-| 4 | Which evaporation equation, and its mixture assumptions | Correctness of the evaporation curve |
-| 5 | Behaviour outside the Antoine validity range | Evaporation curve at skin temperature |
-| 6 | Which product categories the system checks against | Regulatory status |
+Decisions 1–8 use the same numbers and owners as `calculation-engine.md` §7.
 
-Items 2, 4 and 6 are domain judgements and belong to the stakeholder, not to implementation.
+| # | Decision | Blocks | Owner |
+|---|---|---|---|
+| 1 | Quantities stored in grams, or a density column obtained | Concentration, if any formula uses volume | Team |
+| 2 | Odour bar height: mass percentage or odour units | Odour chart (FR-009) | Stakeholder |
+| 3 | Numeric mapping for categorical odour strength | Odour chart, if strength is used | Stakeholder |
+| 4 | Which evaporation equation, and its mixture assumptions | Correctness of the evaporation curve (FR-010) | Stakeholder |
+| 5 | Behaviour outside the Antoine validity range | Evaporation curve at skin temperature | Stakeholder |
+| 6 | Which product categories the system checks against | Regulatory status (FR-005) | Stakeholder |
+| 7 | The near-limit band — what share of a limit counts as near | FR-005's near state only | Stakeholder |
+| 8 | Whether a formula declares an expected total or batch size | FR-004's discrepancy flag; the batch-size example in FR-007 | Team |
+| 9 | A version column on `formulas`, and what creates a version | Access-log and export rows that record `formula_id` + version (rule.md rule 31, FR-008) | Team |
+| 10 | How `prohibited`, `declarable`, `specification` and `listed` rows map onto within / near / over / insufficient | FR-005 for every row without a numeric limit | Stakeholder |
+| 11 | Material groups and material-pair (combination) checks: no supplied data, table or engine output supports them | The group and pair criteria in FR-003, FR-005 and CER-002 | Stakeholder |
+
+Decisions 2–7, 10 and 11 are domain judgements and belong to the stakeholder, not to
+implementation. Decision 3 is a domain judgement for the reason given in §3, and decision 5 is
+the choice §4 leaves open. Both follow `calculation-engine.md`, which assigns them to the
+stakeholder.
 
 ---
 
@@ -225,9 +246,25 @@ Items 2, 4 and 6 are domain judgements and belong to the stakeholder, not to imp
 Ranked by cost rather than difficulty:
 
 1. **Extracting the IFRA Standards spreadsheet into `material_restrictions` rows.** Roughly a
-   hundred materials against up to twelve categories. This is the largest single item and it is
-   data entry and verification, not engineering.
+   hundred materials against every category column in the supplied sheet, possibly including
+   sub-categories such as 5A (see §5). This is the largest single item and it is data entry and
+   verification, not engineering.
 2. **Choosing the evaporation model.** Small to implement, but it gates whether the curve means
    anything, and it is not a decision the team can make alone.
 3. **Normalising odour types and deciding the weighting.** Same shape, smaller.
 4. Everything else is ordinary CRUD against the tables above.
+
+---
+
+## 9. Not yet modelled
+
+The design and `rule.md` require these, but no table or column above defines them yet. They are
+listed so that nothing is built on the assumption that they exist.
+
+| Missing | Required by |
+|---|---|
+| `formulas.version` (decision 9) | rule.md rule 31, FR-008 and SEC-002 acceptance criteria: log rows record `formula_id` + version |
+| Consent records table (only `users.consent_id` exists) | PRIV-001, rule.md rules 1, 15, 41 |
+| `access_log` columns | rule.md rules 27, 32, 33 (fields; the app role has INSERT and SELECT, no UPDATE or DELETE; hash chain) |
+| `retained_identity` | rule.md rule 30: a deleted user's log identity is kept for at least 90 days |
+| `purpose_code`, `consent_id`, `retention_until` on `formulas` | rule.md rule 2 — `formulas.created_by` is personal data (rule.md §0, class A) |

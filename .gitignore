@@ -16,6 +16,10 @@ build/
 *.test
 vendor/
 
+# Owner data and lecturer material — never committed (rule.md §0.1, IP-002)
+.docs/00-context/data-10-example-subtance/
+lecturer-material-do-not-commit/
+
 # OS / editor
 .DS_Store
 Thumbs.db

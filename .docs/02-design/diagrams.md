@@ -22,7 +22,7 @@ flowchart LR
 
     Formulator -->|logs in, views & evaluates formulas| System
     DomainExpert -->|supplies dataset/rules| Dataset
-    System -->|reads/writes| Dataset
+    System -->|reads| Dataset
 
     classDef actor fill:#fff,stroke:#333,stroke-width:2px,font-weight:bold;
 ```
@@ -62,30 +62,56 @@ flowchart LR
 
 ## D3 — High-Level Architecture
 
-What it shows: layers and data direction, now naming the chosen stack (table below) — this
-supersedes the earlier "no stack decided yet" placeholder (`project-context.md` §29 is stale on
-this point as of this decision).
+What it shows: layers, the six server modules, and the direction of calls, naming the chosen stack
+(table below). The modules follow the Backend Map page
+(https://claude.ai/artifact/JoF8PwkdQNxjJQZ3cLsjZk). Where the engine sits follows
+`calculation-engine.md` §3.
 
 ```mermaid
 flowchart LR
     subgraph Client
         UI[Next.js + TypeScript]
     end
-    subgraph Server
-        API[Go + Gin — REST API]
-        AUTH[Auth + Access Log]
-        ENGINE[Calculation Engine]
+    subgraph Server["Server — Go + Gin REST API"]
+        AUTH[Auth & session<br/>verify session]
+        PERM[Permission & tenancy<br/>action check · record check org_id]
+        FORM[Formula module<br/>EvaluationService loads snapshot]
+        ENGINE[Calculation engine<br/>pure · no DB, network or clock]
+        ACC[Account & consent<br/>/me · consent gate]
+        LOG[Access log writer<br/>INSERT only]
     end
     subgraph Database
-        DB[(PostgreSQL via sqlc + pgx:<br/>Formulas, Materials, Rules,<br/>Accounts, Consent, Access Log)]
+        DB[(PostgreSQL via sqlc + pgx:<br/>organisations · users · consent records*<br/>formulas · formula_items · materials<br/>odour and volatility tables<br/>material_restrictions · regulation_*<br/>access_log*)]
     end
 
-    UI -->|HTTPS| API
-    API --> AUTH
-    API --> ENGINE
+    UI -->|HTTPS| AUTH
+    AUTH --> PERM
+    PERM --> FORM
+    AUTH -->|session only| ACC
+    FORM -->|snapshot| ENGINE
     AUTH --> DB
-    ENGINE --> DB
+    FORM --> DB
+    ACC --> DB
+    AUTH --> LOG
+    FORM --> LOG
+    ACC --> LOG
+    LOG --> DB
 ```
+
+Every formula request passes the same gates: verify session → action check → record check on
+`org_id` (`roles-permissions.md` §5). Login creates the session, and the `/me` routes need a valid
+session but no permission (`roles-permissions.md` §3). The Formula module's `EvaluationService`
+loads the formula through sqlc + pgx, and the engine computes on that snapshot. The engine is the
+only module with no path to the database (CER-003), and no module calls an external AI or model
+service (NFR-004). The Auth, Formula and Account modules write events to the access-log writer,
+which only INSERTs (LR2); the engine writes none, since the Formula module logs each calculation
+run.
+
+\* Required by `rule.md` but not yet modelled as tables (`data-model.md` §9).
+
+The engine placement follows `calculation-engine.md` §3. The Backend Map page still draws its gate
+chain as handler → engine → sqlc + pgx, which gives the engine database access, and needs the same
+change.
 
 ### Tech Stack
 
@@ -104,7 +130,15 @@ flowchart LR
 
 Auth is the one line still open: "managed" (a third-party identity provider) vs. self-rolled
 session-based auth in Postgres are different enough in data ownership and portability that this
-should be pinned down as a real decision, not left as "or," before it's built.
+should be pinned down as a real decision, not left as "or," before it's built (`backlog.md` Open
+Question 18). If managed auth is
+chosen, the identity provider becomes an external box outside the server in D3, and the system
+still writes its own access log (rule.md rule 35).
+
+Railway, and a managed identity provider if one is chosen, would process data outside Thailand.
+Before the first deployment each must be listed in `docs/privacy/transfers.md` and flagged to the
+owner (rule.md rule 18). Railway would also hold owner IP (the dataset and formulas), so it needs
+the owner's written approval as well (rule.md §0.1, IP-004). See `backlog.md` Open Question 15.
 
 ## D4 — Activity
 

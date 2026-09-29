@@ -89,6 +89,14 @@ two fixed roles there is nothing to configure at runtime. The mapping then chang
 reviewed code change with tests, and the only permission change a running system can make is an
 admin changing a user's role, which is written to the access log (LR2).
 
+Admin actions carry their own logging. When an admin opens another user's personal data, the
+system writes an access record of who, whose data, when and why (rule.md rules 22, 28). Account
+creation, account deletion and role changes are logged too. rule.md rule 47 lists granting admin
+rights and deleting an account (a user's own `DELETE /me`, or an admin deletion if one is added)
+as high-risk acts that need re-authentication at that moment, with the method stored. Backlog LR3
+currently makes this conditional on an agreement step existing; whether it applies regardless is
+part of `backlog.md` Open Question 4. The Backend Map page has no route for `user.manage` yet.
+
 A later client portal adds a role without changing any existing check.
 
 ---
@@ -115,6 +123,10 @@ means shared.
 ---
 
 ## 5. Two checks on every formula request
+
+Before either check, the server verifies the session and rejects one that is invalid or expired
+(SEC-004). This is gate 1 in the Backend Map page's gate chain; the two checks below are gates 2
+and 3.
 
 A permission says which **action** a user may take. It does not say which **formula** they may
 take it on. Every formula request therefore runs two checks, both server-side (SEC-001):

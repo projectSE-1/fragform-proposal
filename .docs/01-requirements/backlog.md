@@ -695,7 +695,7 @@ model service (NFR-004).
 - A feedback channel exists for reporting a wrong calculated result, and each report is logged as
   a defect (rule.md rule 63). Exact channel/UI is left to design — Open Question.
 
-**Traceability:** rule.md §4, rules 58–65; rule.md §5 LR4 (priority: Should).
+**Traceability:** rule.md §4, rules 58–63; rule.md §5 LR4 (priority: Should).
 
 ---
 
@@ -928,7 +928,9 @@ These cannot be resolved from the single interview available and must not be gue
    external client may see of an organisation's formulas.
 4. **Whether an explicit "I agree" step exists anywhere in the login/provisioning flow**
    (privacy notice acceptance, terms). This determines whether LR3 is triggered now or later.
-   Open Question.
+   Also open: rule.md rule 47 lists granting admin rights and deleting an account as high-risk
+   acts that need re-authentication. Whether that applies regardless of a privacy-notice step is
+   part of this question (`roles-permissions.md` §3). Open Question.
 5. **Recalculation performance target.** No numeric response-time target for FR-007/NFR-002 was
    stated in the interview. Open Question for design.
 6. **Export file format.** PDF, CSV, JSON, or something else — not specified by the interview.
@@ -947,6 +949,36 @@ These cannot be resolved from the single interview available and must not be gue
 10. **Administrator role's exact capabilities** are not evidenced by the interview and are out of
     scope this cycle beyond the general server-side authorization requirement (SEC-001) that
     applies to any role.
+11. **Near-limit band.** FR-005 requires an "at or near limit" state, but no approved source says
+    what share of a limit counts as near. Stakeholder decision (`data-model.md` §7, decision 7).
+    Within, over and insufficient data work without it.
+12. **Expected total or batch size.** Percentages computed as a share of the sum always total 100.
+    As written, FR-004's discrepancy check can only fire on rounding; it becomes meaningful only
+    if a formula declares an expected total or batch size. FR-007's batch-size example assumes the
+    same. Team decision (`data-model.md` §7, decision 8).
+13. **Formula version.** rule.md rule 31 and the FR-008 and SEC-002 acceptance criteria record
+    `formula_id` + version, but the data model has no version column and nothing defines what
+    creates a version. Team decision (`data-model.md` §7, decision 9).
+14. **Restrictions without a numeric limit.** How `prohibited`, `declarable`, `specification` and
+    `listed` rows map onto FR-005's four states is undefined. Stakeholder decision
+    (`data-model.md` §7, decision 10).
+15. **Hosting approval.** Railway, and a managed identity provider if one is chosen, would process
+    data outside Thailand. Before the first deployment each must be listed in
+    `docs/privacy/transfers.md` and flagged to the owner (rule.md rule 18). Railway would also
+    hold owner IP (the dataset and formulas), so it additionally needs the owner's written
+    approval (rule.md §0.1; IP-004). Nothing is deployed yet.
+16. **Material groups and pair checks.** FR-003 shows material groups, and FR-005 and CER-002
+    check material combinations; CER-001 lists groups as an engine input. The supplied data has no
+    group or pair-rule fields (`.docs/00-context/dataset-structure.md` §1) and no table defines
+    them, so these criteria are not met this cycle (`calculation-engine.md` §1). Under CER-002 and
+    rule.md rule 59, a pair check that is added must return `insufficient data` for a pair with no
+    rule. Stakeholder decision (`data-model.md` §7, decision 11).
+17. **Feedback channel for a wrong result.** LR4 requires a channel for reporting a wrong
+    calculated result, with each report logged as a defect (rule.md rule 63), but no screen,
+    route or table is designed. Team decision.
+18. **Auth mechanism.** Managed identity provider or self-rolled session auth in Postgres is still
+    open (`diagrams.md` D3 Tech Stack). The two differ in data ownership and portability, and a
+    managed provider falls under Open Question 15. Team decision, needed before login is built.
 
 ---
 

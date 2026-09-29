@@ -9,7 +9,7 @@ modified here; it remains the authoritative source if the two ever disagree.
 | LR1 | PDPA | Consent before storing any personal data (name/email/panel-tester record); ship view/correct/delete as real features; sensitive fields need the owner's written plan. | Must | PRIV-001–004 |
 | LR2 | Computer Crime Act §26 | Append-only access log (who, when, from where, what action), retained ≥90 days, including ≥90 days after an account ends. | Must | SEC-003, backlog.md §7 LR2 |
 | LR3 | Electronic Transactions Act §9/26 | Every "I agree"/approval recorded with user id, timestamp, text version, and hash; high-value acts require re-authentication. | Must | backlog.md §7 LR3 (conditional this cycle — no agreement step is designed yet) |
-| LR4 | ETDA principles | Explainable results, "insufficient data" instead of a guess, a human override/feedback path, and a core workflow that works without the model. | Should | CER-001–004, NFR-004 |
+| LR4 | ETDA principles | Explainable results, "insufficient data" instead of a guess, a human override/feedback path, and a core workflow that works without the model. | Should | CER-001–003, NFR-004 |
 | LR5 | Owner IP | Dataset, rules, thresholds, and formulas never leave approved infrastructure; the repository stays private. | Must | IP-001–004 |
 
 ## Traceability chain
