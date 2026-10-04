@@ -5,6 +5,8 @@ Local, standalone **Next.js App Router + TypeScript** prototype on the Honney br
 
 ## Run
 
+For a copy/ZIP opened on another local machine, start with [DEMO.md](DEMO.md). The demo has complete source files and a lockfile; it requires no project-specific absolute path, environment secret or external API.
+
 Requires Node.js >=20.9 (verified locally with 24.18.1) and npm. From the repository root:
 
 ```powershell
@@ -13,7 +15,7 @@ npm ci --ignore-scripts
 npm run dev
 ```
 
-Open http://127.0.0.1:3000. It binds to loopback only. To build and run the standalone demo instead: `npm run build`, then `npm start`. The build is still a **synthetic demo**, never a production implementation of the perfumery product. Changes exist only in memory and reset on refresh or Reset demo. Switching pages preserves the current exercise. Pending access hides domain views; role switches only exercise presentation permissions.
+Open http://127.0.0.1:3000. It binds to loopback only. To build and run the standalone demo instead: `npm run build`, then `npm start`. The build is still a **synthetic demo**, never a production implementation of the perfumery product. Workflow changes exist only in memory and reset on refresh or Reset demo. The Light/Dark button in the top bar stores only `light` or `dark` under `fragrance-studio.theme` in this browser; refresh and Reset demo preserve that appearance choice. If storage is unavailable, switching still works for the open page. Switching pages preserves the current exercise. Pending access hides domain views; role switches only exercise presentation permissions.
 
 ## Try the workflow
 
@@ -35,13 +37,13 @@ Open http://127.0.0.1:3000. It binds to loopback only. To build and run the stan
 | FR-005, FR-014 / wave 4 | Separate jurisdiction findings, document completeness and typed embedded-sample processing | Approved legal sources, storage/scanning, actual bytes, append-only SDS versions and authorization |
 | FR-019–020 / wave 5 | Opt-in synthetic missions, progress, dismissible static tip and FAQ | Reviewed tutorial scripts and own-progress service |
 
-No panels, production approvals, client portal, SaaS billing, AI chat, reference editing, regulatory report export, notifications or dark mode. No real password, OTP, user upload or owner dataset is requested. Legal notice examples are not agreements. Charts are not predictions, measurements, confidence intervals or chemical rules. UI persona guards are not server security.
+No panels, production approvals, client portal, SaaS billing, AI chat, reference editing, regulatory report export, notifications. Production dark mode remains deferred; the owner requested a light/dark appearance switch for this synthetic demo only. No real password, OTP, user upload or owner dataset is requested. Legal notice examples are not agreements. Charts are not predictions, measurements, confidence intervals or chemical rules. UI persona guards are not server security.
 
 Input validation here demonstrates decimal-string handling and the 100% declaration contract. The 12-decimal UI limit is a bounded demo input choice, not a selected production numeric policy. Scientific evaluation always lacks approved evidence. PDF generation is not claimed: sample files are text/JSON, and print preview uses the browser's print dialog.
 
 ## Editing and checking
 
-`components/demo-app.tsx` owns navigation/personas/dirty confirmation. `formula-pages.tsx`, `lab-pages.tsx` and `access-pages.tsx` own the workflows. `dropdown.tsx`/`dropdown.css` provide shared form menus; `persona-switcher.tsx` owns the dedicated role preview menu. `app/globals.css` defines semantic tokens and responsive shell; page styles live next to components. Pure fixtures/action mapping are in `lib/model.ts`, decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
+`components/demo-app.tsx` owns navigation/personas/dirty confirmation. `formula-pages.tsx`, `lab-pages.tsx` and `access-pages.tsx` own the workflows. `dropdown.tsx`/`dropdown.css` provide shared form menus; `persona-switcher.tsx` owns the dedicated role preview menu. `theme-toggle.tsx` and `lib/theme.ts` own the local appearance preference and pre-paint bootstrap. `app/globals.css` defines light/dark semantic tokens and responsive shell; page styles live next to components. Pure fixtures/action mapping are in `lib/model.ts`, decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
 
 ```powershell
 npm run typecheck
