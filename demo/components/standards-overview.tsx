@@ -6,7 +6,7 @@ import {Badge, Icon} from './ui';
 import './standards-overview.css';
 
 // Official links support presentation notes only; they do not provide a connected rule engine.
-const officialSources={
+export const officialSources={
   thaiFDA:'https://cosmetic.fda.moph.go.th/interesting-law/category/cosmetic-laws/',
   asean:'https://asean.org/agreement-on-the-asean-harmonized-cosmetic-regulatory-scheme-phnom-penh-2-september-2003/',
   ifraLibrary:'https://ifrafragrance.org/standards-library',
