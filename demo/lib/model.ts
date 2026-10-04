@@ -28,7 +28,9 @@ export const materials = [
 // so no real limit is reproduced here. Inventing one would be inventing a domain rule.
 export const demoRegulation = {code:'DEMO-REG', label:'Demo rule set 01 (fictional)', note:'Fictional demonstration rule. Not IFRA. Not a real limit.'};
 export const demoRestrictions: {materialId:string; category:string; maxPctInProduct:string; locator:string}[] = [
-  {materialId:'78-70-6',  category:'Demo category 4', maxPctInProduct:'2.0',  locator:'DEMO-REG 01 / row 1'},
+  // Chosen so the seeded formula shows one within and one over, beside two materials
+  // with no rule at all. All three states are visible without editing anything.
+  {materialId:'78-70-6',  category:'Demo category 4', maxPctInProduct:'8.0',  locator:'DEMO-REG 01 / row 1'},
   {materialId:'928-96-1', category:'Demo category 4', maxPctInProduct:'0.25', locator:'DEMO-REG 01 / row 2'},
 ];
 const seedIngredients: Ingredient[] = [
