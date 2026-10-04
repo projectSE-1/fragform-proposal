@@ -23,9 +23,11 @@
 - Browser-only charts/tutorial effects use suitable client components. Their library, component kit, i18n package, mock tool and exact versions are **not selected by importing the MVP**. Mantine, Plotly, MSW, i18next and other source packages are references, not automatically adopted dependencies.
 - Adopt the REST behavior and `ReportedValue`/`MissingValue`/`Quantity` concepts after local contract review; do not import FastAPI/Pydantic implementation assumptions. Preserve the engine's pure `Result[T]` internally and adapt at the Go API boundary.
 - Lab web use on Windows and responsive mobile browsers is in scope. Desktop packaging/offline synchronization and Ollama are not part of this stack decision.
-- No packages are installed by this documentation revision. Node, Go, PostgreSQL, Next.js and dependency versions must be checked against official sources and locked when the corresponding implementation task becomes ready; no upstream version table is asserted as locally verified.
+- The MVP adoption alone installed no packages. The later owner-requested standalone demo now has checked/pinned frontend packages below; production Node/Go/PostgreSQL and dependency versions still need review when implementation becomes ready. No upstream version table is asserted as locally verified.
 
 ## Unresolved engineering choices
+
+The owner-requested standalone synthetic [demo](../../demo/README.md) now pins Next.js 16.3.8, React/React DOM 19.3.0 and TypeScript 5.9.3 with reviewed Node-24 type definitions and npm lockfile. [Dependency evidence](../../demo/dependency-review.md) records registry/script/licence/audit checks. This is a local prototype runtime decision; it does not select backend versions, production infrastructure/auth, UI/chart/i18n libraries or a production numeric policy. No new component/chart/font service is used.
 
 Auth mechanism/provider and session/step-up expiry settings; password/MFA/email delivery implementation; migration tool; approved storage/file-scanning service; numeric representation and serialization; UI/chart/i18n/mock libraries; approved infrastructure and ownership-header text. These are implementation decisions or owner approvals, not hidden changes to the retained stack.
 

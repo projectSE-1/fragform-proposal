@@ -1,6 +1,6 @@
 # src/ — Honney stack, adopted MVP
 
-**Updated:** 2026-10-04. Current checkout: folders and `.gitkeep` placeholders only; no executable app, migration, Dockerfile or tests. This document describes the intended structure; it does not claim that the proposed extra modules below already exist.
+**Updated:** 2026-10-04. Production `src/` contains folders and `.gitkeep` placeholders only; no executable app, migration, Dockerfile or tests. The runnable [standalone synthetic demo](../demo/README.md) lives separately under `demo/`. This document describes the intended production structure; it does not claim that the proposed extra modules below already exist.
 
 ## Baselines
 

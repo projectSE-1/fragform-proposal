@@ -9,6 +9,8 @@
 
 **Status:** Owner-directed MVP scope baseline; scientific, legal and deployment decisions still require the checks below. This document describes intended work, not implemented features.
 
+A separate [interactive demo](../demo/README.md) now illustrates the waves 0–5 workflows with invented data. Its [validation record](../demo/validation.md) distinguishes checked UI behavior from the Go services, database, security controls and scientific results still to be implemented.
+
 ## Problem Statement
 
 Before a fragrance formula is mixed, a formulator needs to understand its ingredients, calculate
