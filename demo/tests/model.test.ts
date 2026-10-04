@@ -1,9 +1,9 @@
 // AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {appendVersion, initialFormulas} from '../lib/model.ts';
+import {appendVersion, initialFormulas, materials} from '../lib/model.ts';
 import {validateDemoDeclaration} from '../lib/formula-validation.ts';
-const declaration = (amounts:string[])=>amounts.map((amount,i)=>({id:`row-${i}`,materialId:`DEMO-M0${i+1}`,amount}));
+const declaration = (amounts:string[])=>amounts.map((amount,i)=>({id:`row-${i}`,materialId:materials[i].id,amount}));
 test('exact decimal declarations never normalise or round an invalid total',()=>{
   assert.equal(validateDemoDeclaration(declaration(['33.333333333333','33.333333333333','33.333333333334'])),null);
   assert.equal(validateDemoDeclaration(declaration(['0.1','0.2','99.7'])),null);
