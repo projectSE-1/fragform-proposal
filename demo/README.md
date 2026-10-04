@@ -11,11 +11,13 @@ Requires Node.js >=20.9 (verified locally with 24.18.1) and npm. From the reposi
 
 ```powershell
 cd demo
-npm ci --ignore-scripts
-npm run dev
+npm.cmd ci --ignore-scripts
+npm.cmd run dev
 ```
 
-Open http://127.0.0.1:3000. It binds to loopback only. To build and run the standalone demo instead: `npm run build`, then `npm start`. The build is still a **synthetic demo**, never a production implementation of the perfumery product. Workflow changes exist only in memory and reset on refresh or Reset demo. The Light/Dark button in the top bar stores only `light` or `dark` under `fragrance-studio.theme` in this browser; refresh and Reset demo preserve that appearance choice. If storage is unavailable, switching still works for the open page. Switching pages preserves the current exercise. Pending access hides domain views; role switches only exercise presentation permissions.
+These Windows PowerShell examples use `npm.cmd` to select the command wrapper explicitly when `npm.ps1` is blocked. On macOS/Linux, use `npm` instead. Run installation/start commands inside `demo/`, where its package manifest and lockfile live.
+
+Open http://127.0.0.1:3000. It binds to loopback only. To build and run the standalone demo instead: `npm.cmd run build`, then `npm.cmd start`. The build is still a **synthetic demo**, never a production implementation of the perfumery product. Workflow changes exist only in memory and reset on refresh or Reset demo. The Light/Dark button in the top bar stores only `light` or `dark` under `fragrance-studio.theme` in this browser; refresh and Reset demo preserve that appearance choice. If storage is unavailable, switching still works for the open page. Switching pages preserves the current exercise. Pending access hides domain views; role switches only exercise presentation permissions.
 
 ## Try the workflow
 
@@ -46,9 +48,9 @@ Input validation here demonstrates decimal-string handling and the 100% declarat
 `components/demo-app.tsx` owns navigation/personas/dirty confirmation. `formula-pages.tsx`, `lab-pages.tsx` and `access-pages.tsx` own the workflows. `dropdown.tsx`/`dropdown.css` provide shared form menus; `persona-switcher.tsx` owns the dedicated role preview menu. `theme-toggle.tsx` and `lib/theme.ts` own the local appearance preference and pre-paint bootstrap. `app/globals.css` defines light/dark semantic tokens and responsive shell; page styles live next to components. Pure fixtures/action mapping are in `lib/model.ts`, decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
 
 ```powershell
-npm run typecheck
-npm test
-npm run build
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
 ```
 
 Tests check exact sums, immutable version history and role boundaries for this demo only. They do not establish Go authorization or scientific correctness. See [validation record](validation.md), [dependency review](dependency-review.md), [design decisions](design-decisions.md) and [prototype status](../.docs/02-design/prototype/prototype.md).

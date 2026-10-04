@@ -32,9 +32,11 @@
 
 ```powershell
 cd demo
-npm ci --ignore-scripts
-npm run dev
+npm.cmd ci --ignore-scripts
+npm.cmd run dev
 ```
+
+ตัวอย่างใช้ `npm.cmd` สำหรับ Windows PowerShell หากใช้ macOS/Linux ให้ใช้ `npm` แทน ต้องเข้าโฟลเดอร์ `demo/` ก่อนติดตั้งหรือเปิดเดโม วิธีแก้ `npm.ps1` ถูกบล็อกและวิธีเปลี่ยนพอร์ตอยู่ใน [DEMO.md](demo/DEMO.md)
 
 เปิด http://127.0.0.1:3000 เพื่อทดลองสูตร/เวอร์ชัน/what-if แล็บ เอกสาร บัญชี บทบาท และบทสอน รีเฟรชหรือรีเซ็ตแล้วข้อมูลกลับค่าเริ่มต้น ปุ่มรูปพระจันทร์/พระอาทิตย์บนแถบด้านบนสลับโหมดสว่าง/มืด และจำเฉพาะโหมดที่เลือกไว้ในเบราว์เซอร์ รายละเอียดการทดลองและข้อจำกัดอยู่ใน [demo/README.md](demo/README.md) และ [สถานะ prototype](.docs/02-design/prototype/prototype.md)
 
