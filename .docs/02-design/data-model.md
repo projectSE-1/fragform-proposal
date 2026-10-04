@@ -43,10 +43,16 @@ Computed, not stored:
 percentage = item.quantity / SUM(item.quantity) OVER (PARTITION BY formula_id) * 100
 ```
 
-**Decision needed: unit.** The supplied dataset has `MW (g/mol)` but **no density**. Volume
-quantities cannot be converted to mass percentage without it. Either store quantities in grams
-only, or obtain a density column from the stakeholder. Storing grams is the cheaper answer and
-what this design assumes.
+**Unit: grams. Decided 2026-10-04 (team, decision 1).** The supplied dataset has `MW (g/mol)` and
+**no density**, confirmed against the 10-substance sample: 34 columns, none of them a density.
+Volume quantities therefore cannot be converted to mass percentage, so `formula_items.quantity` is
+stored in grams and the unit column accepts no other value for now.
+
+If a formula ever arrives in millilitres, the engine returns `insufficient data` naming the
+missing density rather than converting (CER-002). Supplier spec sheets do carry a relative density
+(verified on the one sample substance that has a spec sheet), but it is a specification range per
+supplier rather than a measured value for the material in hand, so it would weaken a cited figure
+(CER-001). Obtaining density stays a later decision, triggered only by a real volume formula.
 
 ---
 
@@ -222,8 +228,8 @@ Decisions 1–8 use the same numbers and owners as `calculation-engine.md` §7.
 
 | # | Decision | Blocks | Owner |
 |---|---|---|---|
-| 1 | Quantities stored in grams, or a density column obtained | Concentration, if any formula uses volume | Team |
-| 2 | Odour bar height: mass percentage or odour units | Odour chart (FR-009) | Stakeholder |
+| 1 | ~~Quantities stored in grams, or a density column obtained~~ **Decided 2026-10-04: grams** (§2) | — | Team |
+| 2 | Which weighting is the default, and whether odour units or strength is the right perception basis | The default only. All three are selectable (`calculation-engine.md` §4) | Stakeholder |
 | 3 | Numeric mapping for categorical odour strength | Odour chart, if strength is used | Stakeholder |
 | 4 | Which evaporation equation, and its mixture assumptions | Correctness of the evaporation curve (FR-010) | Stakeholder |
 | 5 | Behaviour outside the Antoine validity range | Evaporation curve at skin temperature | Stakeholder |
