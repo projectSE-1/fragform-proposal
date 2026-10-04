@@ -1,0 +1,5 @@
+// AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted.
+import type {Metadata} from 'next';
+import './globals.css';
+export const metadata:Metadata={title:'Fragrance Studio · AI Perfumery Engine Demo',description:'Synthetic MVP interaction prototype. No real materials, credentials or chemical results.',robots:{index:false,follow:false}};
+export default function RootLayout({children}:{children:React.ReactNode}) {return <html lang="en"><body>{children}</body></html>;}

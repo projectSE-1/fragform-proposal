@@ -1,0 +1,3255 @@
+# AI Perfumery Engine design contract; ownership follows the owner's agreement. No new licence.
+# Adapted 2026-10-04 from frontend aa572abaede14c11796a1551434858171eb37363.
+# Illustrative examples and upstream x-source/PDC references are not approved domain rules.
+openapi: 3.1.0
+info:
+  title: AI Perfumery Engine — Honney REST API (MVP waves 0–5)
+  version: 0.2.0-draft
+  summary: Design contract for Next.js and Go/Gin; no backend or mock is implemented here.
+  description: |
+    **Status: local design draft, 2026-10-04.** Adapted from the pinned frontend MVP contract.
+    Technology remains Next.js, Go/Gin and PostgreSQL/sqlc+pgx. See ../api-contract.md.
+    Includes local rights/logging/formula-export additions; upstream internal source references
+    are provenance, not local approval. Scientific models, thresholds and confidence definitions
+    remain gated where their underlying evidence is unavailable. Administrative request shapes
+    missing reasons/step-up, transient what-if inputs and erasure response details must be completed
+    against local rules before their tasks are Ready. This file does not assert semantic completeness.
+    Upstream operations carry:
+
+    - `x-source` — `03 §3.x` when the row exists in 03, or `H1` when it was added here (with the PDC that the
+      underlying spec change is waiting on, if any).
+    - `x-roles` — who may call it. Server enforces; hiding a button in the UI is never access control.
+    - `x-wave` — which frontend wave uses it (see frontend-handoff/README §1).
+
+    **Rules that shape this contract (read before building screens):**
+
+    1. The UI never computes, rounds or judges a reported number. Estimates arrive as `ReportedValue`
+       (value + interval + tier + provenance) or `MissingValue`; exact/declared numbers arrive as `Quantity`.
+       Format with `Intl.NumberFormat` using `display_decimals` from the server — nothing else.
+    2. Users with no role see nothing (user decision 2026-09-23). Domain endpoints return 403 for them.
+       Exceptions are listed explicitly: public endpoints (`security: []`) and own-account endpoints
+       (`x-roles: [authenticated]`), which only ever return the caller's own account data.
+    3. Errors are `application/problem+json` (`Problem`) with a stable `code` from the catalogue in `api/README.md`.
+       No stack traces, SQL or internal names — ever.
+    4. Session = HttpOnly cookie set by the server. Every POST/PUT/PATCH/DELETE also sends `X-CSRF-Token`
+       (value from `LoginResult.csrf_token` or `GET /app/auth/session`), kept in memory only.
+    5. Weighed amounts and other user-entered decimals are sent as **decimal strings** (e.g. `"2.4987"`) so the
+       number of decimals the user typed is preserved exactly (it is tied to the balance's readability).
+  license:
+    name: Internal design document — not for redistribution
+servers:
+  - url: /
+    description: Same-origin routing to the Go/Gin REST backend; implementation pending
+
+security:
+  - sessionCookie: []
+
+tags:
+  - name: public
+    description: No login needed. Never returns system data.
+  - name: auth
+    description: Sign-up, e-mail verification, login, MFA, password reset, session.
+  - name: account
+    description: The caller's own account. Authenticated; no role needed.
+  - name: admin
+    description: Users and roles (org_admin in own tenant, system_admin across tenants). Needs a fresh MFA step-up.
+  - name: home
+    description: Dashboard summary for the active tenant.
+  - name: reference
+    description: Vehicles, product categories, materials, instruments.
+  - name: formulas
+    description: Formula list, create, versions, modify.
+  - name: analyze
+    description: Analysis runs, results, predictions, provenance.
+  - name: lab
+    description: Batches, weighing per item, pre-dilution, mixing sheet and label PDFs.
+  - name: compliance
+    description: Compliance findings, document vault, completeness, upload.
+
+paths:
+  # Local compliance extensions: contract draft, not implemented routes.
+  /me/data:
+    get:
+      operationId: exportMyData
+      tags: [account]
+      summary: Export the caller's personal data
+      x-source: 'local rule.md rule 11; PRIV-002; FR-017'
+      x-roles: [authenticated]
+      x-wave: 1
+      description: Own personal data only; metadata of attributable records, never another user or an owner-IP dataset dump. Log this export.
+      responses:
+        '200':
+          description: Personal-data export; final field inventory follows the erasure/rights design
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /me:
+    patch:
+      operationId: correctMyData
+      tags: [account]
+      summary: Correct the caller's profile
+      x-source: 'local rule.md rule 11; PRIV-002; FR-017'
+      x-roles: [authenticated]
+      x-wave: 1
+      description: Go rejects role or organisation changes. Email correction uses verification before changing the active address. Verify CSRF.
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                display_name: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '200': { description: Correction accepted; any email change remains subject to verification }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      operationId: eraseMyAccount
+      tags: [account]
+      summary: Execute the caller's account-erasure workflow
+      x-source: 'local rule.md rules 11–15, 30, 47; PRIV-002; FR-017'
+      x-roles: [authenticated]
+      x-wave: 1
+      description: Requires fresh purpose-bound server-verified re-authentication and CSRF; keeps legally retained identity/logs and schedules backup purge. Intake-only deletion requests do not satisfy this operation.
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+        - name: X-Step-Up-Token
+          in: header
+          required: true
+          schema: { type: string }
+          description: Fresh server-issued proof for this caller and erasure action; must verify expiry and purpose
+      responses:
+        '200':
+          description: Erasure workflow result including retained-record exceptions and scheduled backup purge; final response schema pending design
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /app/admin/access-log:
+    get:
+      operationId: queryAccessLog
+      tags: [admin]
+      summary: Query authorized access-log metadata
+      x-source: 'local rule.md rules 36, 38; LR2; SEC-003'
+      x-roles: [org_admin, system_admin]
+      x-permission: access_log.query
+      x-wave: 1
+      description: Server restricts tenant/date/actor scope; the query itself is logged with its reason. Does not return formula contents.
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: actor_user_id, in: query, schema: { type: string } }
+        - name: X-Access-Reason-Code
+          in: header
+          required: true
+          description: Server-validated audit-purpose code from the reviewed catalogue; no free-form personal data. Proxy/application request logs must not capture the header value.
+          schema: { type: string, pattern: '^[A-Z][A-Z0-9_]*$' }
+      responses:
+        '200':
+          description: Scoped access-log metadata; final paginated row schema follows the log design
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /app/admin/access-log/export:
+    get:
+      operationId: exportAccessLog
+      tags: [admin]
+      summary: Export authorized access-log metadata
+      x-source: 'local rule.md rules 28, 36, 38; LR2; SEC-003'
+      x-roles: [org_admin, system_admin]
+      x-permission: access_log.export
+      x-wave: 1
+      description: Same scope as queryAccessLog; query and download are both logged. No formula bodies, passwords or sensitive data.
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: actor_user_id, in: query, schema: { type: string } }
+        - name: X-Access-Reason-Code
+          in: header
+          required: true
+          description: Server-validated audit-purpose code from the reviewed catalogue; no free-form personal data. Proxy/application request logs must not capture the header value.
+          schema: { type: string, pattern: '^[A-Z][A-Z0-9_]*$' }
+      responses:
+        '200':
+          description: Scoped metadata download; format is pending approval
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /app/formulas/{formula_id}/export:
+    get:
+      operationId: exportFormula
+      tags: [formulas]
+      summary: Export one authorized displayed formula snapshot
+      x-source: 'local FR-008; IP-003; rule.md rules 28, 31'
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-permission: formula.export
+      x-wave: 3
+      description: Restrict to the active tenant and one displayed immutable formula version. Never export dataset/rule tables or other formulas. Log formula_id and version, not the body. Transient what-if export request remains gated.
+      parameters:
+        - name: formula_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Scoped formula download; chosen file format/layout pending approval
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  # ───────────────────────────── public ─────────────────────────────
+  /app/public/config:
+    get:
+      tags: [public]
+      operationId: getPublicConfig
+      summary: Settings the UI needs before login (sign-up open?, password rules, supported languages)
+      security: []
+      x-source: H1
+      x-roles: [public]
+      x-wave: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicConfig' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /app/public/legal-documents:
+    get:
+      tags: [public]
+      operationId: listLegalDocuments
+      summary: Current terms of use and privacy notice (version the user must accept at sign-up)
+      security: []
+      x-source: H1 (PDC-156)
+      x-roles: [public]
+      x-wave: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LegalDocument' }
+
+  # ───────────────────────────── auth ─────────────────────────────
+  /app/auth/signup:
+    post:
+      tags: [auth]
+      operationId: signup
+      summary: Self sign-up. Account starts with no role (sees nothing) until an admin grants one.
+      description: |
+        Always answers **202 with the same body** whether or not the e-mail already exists (no account enumeration).
+        If it exists, the server e-mails the owner instead of creating a duplicate. The new account belongs to the
+        server's configured sign-up tenant (MVP: one tenant) and must verify its e-mail before it can log in.
+      security: []
+      x-source: H1 (PDC-155)
+      x-roles: [public]
+      x-wave: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignupRequest' }
+      responses:
+        '202': { $ref: '#/components/responses/AcceptedCheckEmail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /app/auth/verify-email:
+    post:
+      tags: [auth]
+      operationId: verifyEmail
+      summary: Confirm an e-mail address with the one-time token from the link (sign-up, invite, or e-mail change)
+      security: []
+      x-source: H1 (PDC-155)
+      x-roles: [public]
+      x-wave: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, minLength: 16, maxLength: 256 }
+      responses:
+        '200':
+          description: Verified. `next` tells the UI where to go.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [purpose, next]
+                properties:
+                  purpose: { type: string, enum: [signup, invite, email_change] }
+                  next: { type: string, enum: [login, set_password] }
+                  set_password_token:
+                    type: string
+                    description: Only for `invite` — use with `POST /app/auth/password/reset`.
+        '400': { $ref: '#/components/responses/TokenInvalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /app/auth/verify-email/resend:
+    post:
+      tags: [auth]
+      operationId: resendVerification
+      summary: Re-send the verification e-mail (same 202 whether or not the account exists)
+      security: []
+      x-source: H1 (PDC-155)
+      x-roles: [public]
+      x-wave: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmailOnly' }
+      responses:
+        '202': { $ref: '#/components/responses/AcceptedCheckEmail' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /app/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Step 1 — e-mail + password
+      description: |
+        Wrong e-mail and wrong password give the **same** 401 `auth.invalid_credentials` (X1 §0 rule 1).
+        `auth.email_not_verified` and `auth.account_deactivated` are only returned after the password was correct.
+      security: []
+      x-source: 03 §3.6
+      x-roles: [public]
+      x-wave: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Password accepted. Look at `status` for the next step.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /app/auth/mfa/verify:
+    post:
+      tags: [auth]
+      operationId: verifyMfa
+      summary: Step 2 — 6-digit TOTP code or one recovery code
+      security: []
+      x-source: 03 §3.6
+      x-roles: [public]
+      x-wave: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MfaVerifyRequest' }
+      responses:
+        '200':
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /app/auth/mfa/setup:
+    post:
+      tags: [auth]
+      operationId: startMfaSetup
+      summary: Start TOTP enrolment — returns a QR image and the manual key (short-lived, bound to this session)
+      description: |
+        Called either during login (`challenge_id` from a `mfa_setup_required` LoginResult) or later from the account
+        page (authenticated, no body needed). The QR is a PNG data URI — show it in `<img>`, never inject as HTML.
+      security: [{}, { sessionCookie: [] }]
+      x-source: H1 (03 had no setup endpoint; PDC-138)
+      x-roles: [public-with-challenge, authenticated]
+      x-wave: 1
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                challenge_id: { type: string }
+      responses:
+        '200':
+          description: Scan this, then confirm with a code
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MfaSetup' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /app/auth/mfa/setup/confirm:
+    post:
+      tags: [auth]
+      operationId: confirmMfaSetup
+      summary: Confirm enrolment with the first code — returns recovery codes ONCE
+      security: [{}, { sessionCookie: [] }]
+      x-source: H1 (PDC-138)
+      x-roles: [public-with-challenge, authenticated]
+      x-wave: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [setup_id, code]
+              properties:
+                setup_id: { type: string }
+                code: { $ref: '#/components/schemas/TotpCode' }
+                challenge_id: { type: string, description: Present when enrolling during login }
+      responses:
+        '200':
+          description: Enrolled. Show `recovery_codes` once (download/print) — the server keeps only hashes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [recovery_codes]
+                properties:
+                  recovery_codes:
+                    type: array
+                    items: { type: string }
+                    minItems: 1
+                  login: { $ref: '#/components/schemas/LoginResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '410': { $ref: '#/components/responses/Gone' }
+
+  /app/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: End this session
+      x-source: 03 §3.6
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      responses:
+        '204': { description: Logged out (cookie cleared) }
+
+  /app/auth/session:
+    get:
+      tags: [auth]
+      operationId: getSession
+      summary: Current session facts — CSRF token after a page reload, and when the session will expire
+      x-source: H1
+      x-roles: [authenticated]
+      x-wave: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionInfo' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /app/auth/context:
+    post:
+      tags: [auth]
+      operationId: setActiveTenant
+      summary: Choose which tenant to work in (X1 S4). Server sets the tenant context for RLS.
+      x-source: H1 (X1 S4)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenant_id]
+              properties:
+                tenant_id: { type: string }
+      responses:
+        '200':
+          description: Context switched — returns the refreshed Me
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /app/auth/password/forgot:
+    post:
+      tags: [auth]
+      operationId: forgotPassword
+      summary: E-mail a reset link (same 202 whether or not the account exists)
+      security: []
+      x-source: H1 (PDC-155)
+      x-roles: [public]
+      x-wave: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmailOnly' }
+      responses:
+        '202': { $ref: '#/components/responses/AcceptedCheckEmail' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /app/auth/password/reset:
+    post:
+      tags: [auth]
+      operationId: resetPassword
+      summary: Set a new password with the one-time token (also used by invite links). Ends all other sessions.
+      security: []
+      x-source: H1 (PDC-155)
+      x-roles: [public]
+      x-wave: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token: { type: string, minLength: 16, maxLength: 256 }
+                new_password: { $ref: '#/components/schemas/Password' }
+      responses:
+        '204': { description: Password set — go to login }
+        '400': { $ref: '#/components/responses/TokenInvalid' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/auth/step-up:
+    post:
+      tags: [auth]
+      operationId: stepUp
+      summary: Re-authenticate for a high-risk action without granting new permissions
+      x-source: 'H1 X4 S4; local rule.md rule 47 and own-account erasure'
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [purpose]
+              description: Admin account actions require MFA code; own-account high-risk actions may use password or code under the approved policy. Go verifies actor, purpose and expiry on use; credentials are never logged.
+              oneOf:
+                - required: [code]
+                  not: { required: [password] }
+                - required: [password]
+                  not: { required: [code] }
+              properties:
+                purpose: { type: string, minLength: 1 }
+                code: { $ref: '#/components/schemas/TotpCode' }
+                password: { type: string, writeOnly: true }
+      responses:
+        '200':
+          description: Send the purpose-bound step_up_token as X-Step-Up-Token; Go verifies actor, purpose and configured expiry for the action
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [step_up_token, expires_at]
+                properties:
+                  step_up_token: { type: string }
+                  expires_at: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ───────────────────────────── account (own) ─────────────────────────────
+  /app/users/me:
+    get:
+      tags: [account]
+      operationId: getMe
+      summary: Who am I — memberships, roles in the active tenant, MFA state, consents to accept, tutorial status
+      description: '`has_any_role=false` → show the waiting-for-access page only (X1 S5).'
+      x-source: 03 §3.6
+      x-roles: [authenticated]
+      x-wave: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /app/account/profile:
+    patch:
+      tags: [account]
+      operationId: updateProfile
+      summary: Change display name
+      x-source: H1 (PDC-155)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/account/email-change:
+    post:
+      tags: [account]
+      operationId: requestEmailChange
+      summary: Change e-mail — link goes to the NEW address; old address gets a notice
+      x-source: H1 (PDC-155)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_email, current_password]
+              properties:
+                new_email: { type: string, format: email, maxLength: 254 }
+                current_password: { type: string, maxLength: 256 }
+      responses:
+        '202': { $ref: '#/components/responses/AcceptedCheckEmail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/account/password:
+    post:
+      tags: [account]
+      operationId: changePassword
+      summary: Change password (needs the current one). Ends all other sessions.
+      x-source: H1 (PDC-155)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, maxLength: 256 }
+                new_password: { $ref: '#/components/schemas/Password' }
+      responses:
+        '204': { description: Changed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/account/mfa:
+    get:
+      tags: [account]
+      operationId: getMyMfa
+      summary: MFA status of my account
+      x-source: H1 (PDC-138)
+      x-roles: [authenticated]
+      x-wave: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MfaStatus' }
+    delete:
+      tags: [account]
+      operationId: disableMyMfa
+      summary: Turn MFA off — refused (409) while any of my roles requires it
+      x-source: H1 (PDC-138)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      responses:
+        '204': { description: Disabled }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /app/account/mfa/recovery-codes:
+    post:
+      tags: [account]
+      operationId: regenerateRecoveryCodes
+      summary: Issue a new set of recovery codes (old set stops working). Shown once.
+      x-source: H1 (PDC-138)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      responses:
+        '200':
+          description: New codes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [recovery_codes]
+                properties:
+                  recovery_codes:
+                    type: array
+                    items: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /app/account/sessions:
+    get:
+      tags: [account]
+      operationId: listMySessions
+      summary: Where I am logged in
+      x-source: H1 (PDC-155)
+      x-roles: [authenticated]
+      x-wave: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SessionSummary' }
+
+  /app/account/sessions/{session_id}:
+    delete:
+      tags: [account]
+      operationId: revokeMySession
+      summary: Log out one other device
+      x-source: H1 (PDC-155)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+        - name: session_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Revoked }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/account/sessions/revoke-others:
+    post:
+      tags: [account]
+      operationId: revokeOtherSessions
+      summary: Log out everywhere except here
+      x-source: H1 (PDC-155)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      responses:
+        '204': { description: Done }
+
+  /app/account/preferences:
+    get:
+      tags: [account]
+      operationId: getPreferences
+      summary: Language and help settings
+      x-source: H1 (PDC-157)
+      x-roles: [authenticated]
+      x-wave: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Preferences' }
+    patch:
+      tags: [account]
+      operationId: updatePreferences
+      summary: Change language / mascot tips on-off
+      x-source: H1 (PDC-157)
+      x-roles: [authenticated]
+      x-wave: 0
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PreferencesPatch' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Preferences' }
+
+  /app/account/tutorial:
+    get:
+      tags: [account]
+      operationId: getTutorialProgress
+      summary: Tutorial (game mode) progress — quests, badges, where to resume
+      x-source: H1 (PDC-157)
+      x-roles: [authenticated]
+      x-wave: 5
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TutorialProgress' }
+    patch:
+      tags: [account]
+      operationId: updateTutorialProgress
+      summary: Record a finished step / quest, a skip, or a reset. Tutorial data itself is bundled demo data, not API data.
+      x-source: H1 (PDC-157)
+      x-roles: [authenticated]
+      x-wave: 5
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TutorialEvent' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TutorialProgress' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/account/consents:
+    get:
+      tags: [account]
+      operationId: listMyConsents
+      summary: What I accepted, and anything newer I still need to accept
+      x-source: H1 (PDC-156)
+      x-roles: [authenticated]
+      x-wave: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, pending]
+                properties:
+                  accepted:
+                    type: array
+                    items: { $ref: '#/components/schemas/ConsentRecord' }
+                  pending:
+                    type: array
+                    items: { $ref: '#/components/schemas/LegalDocument' }
+    post:
+      tags: [account]
+      operationId: acceptLegalDocument
+      summary: Accept a terms/privacy version
+      x-source: H1 (PDC-156)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document_id, version]
+              properties:
+                document_id: { type: string }
+                version: { type: string }
+      responses:
+        '201':
+          description: Recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsentRecord' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /app/account/deletion-request:
+    post:
+      tags: [account]
+      operationId: requestAccountDeletion
+      summary: Ask for my account and personal data to be deleted (PDPA). Handled by an admin; audit history is kept as the law allows.
+      x-source: H1 (PDC-156)
+      x-roles: [authenticated]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password]
+              properties:
+                current_password: { type: string, maxLength: 256 }
+                reason: { type: string, maxLength: 1000 }
+      responses:
+        '202':
+          description: Request recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [request_id, status]
+                properties:
+                  request_id: { type: string }
+                  status: { type: string, enum: [received] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ───────────────────────────── admin ─────────────────────────────
+  /app/users:
+    get:
+      tags: [admin]
+      operationId: listUsers
+      summary: Users in my tenant — filter `pending_approval` for new sign-ups waiting for a role
+      x-source: 03 §3.6 (+ status filter, H1)
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/UserListStatus' }
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/UserSummary' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [admin]
+      operationId: inviteUser
+      summary: Add a user — the server e-mails an invite link (set password + verify). No temporary password.
+      x-source: '03 §3.6 (changed: invite e-mail replaces the one-time temp password of X4 S5)'
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+                email: { type: string, format: email, maxLength: 254 }
+      responses:
+        '201':
+          description: Created (no role yet)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/users/{user_id}:
+    get:
+      tags: [admin]
+      operationId: getUser
+      summary: One user's account and roles
+      x-source: H1 (X4 S2)
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/users/{user_id}/roles:
+    post:
+      tags: [admin]
+      operationId: grantRole
+      summary: Grant a role (with a reason). Granting yourself is always refused (security test S3).
+      x-source: 03 §3.6
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_id, reason]
+              properties:
+                role_id: { $ref: '#/components/schemas/RoleId' }
+                reason: { $ref: '#/components/schemas/Reason' }
+      responses:
+        '201':
+          description: Granted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/users/{user_id}/roles/{role_id}/revoke:
+    post:
+      tags: [admin]
+      operationId: revokeRole
+      summary: Remove a role (with a reason). Removing the last role = the user sees nothing.
+      description: |
+        Changed from `DELETE /app/users/{user_id}/roles/{role_id}` in 03 §3.6 — a reason is required and must not travel
+        in the URL (personal text in query strings leaks into logs), and some proxies drop DELETE bodies.
+      x-source: 03 §3.6 (method changed, H1)
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: role_id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/RoleId' }
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { $ref: '#/components/schemas/Reason' }
+      responses:
+        '200':
+          description: Revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/users/{user_id}/password-reset:
+    post:
+      tags: [admin]
+      operationId: adminSendPasswordReset
+      summary: E-mail the user a reset link (replaces "issue temporary password" in X4 S4)
+      x-source: H1 (PDC-155)
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReasonBody' }
+      responses:
+        '202': { $ref: '#/components/responses/AcceptedCheckEmail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/users/{user_id}/mfa-reset:
+    post:
+      tags: [admin]
+      operationId: adminResetMfa
+      summary: Clear the user's MFA — they must enrol again at next login
+      x-source: H1 (X4 S4)
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReasonBody' }
+      responses:
+        '204': { description: Reset }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/users/{user_id}/resend-invite:
+    post:
+      tags: [admin]
+      operationId: adminResendInvite
+      summary: Send the invite link again (user has not set a password yet)
+      x-source: H1 (PDC-155)
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      responses:
+        '202': { $ref: '#/components/responses/AcceptedCheckEmail' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /app/users/{user_id}/deactivate:
+    post:
+      tags: [admin]
+      operationId: adminDeactivateUser
+      summary: Deactivate (also how a pending sign-up is rejected). Nothing is deleted — history stays.
+      x-source: H1 (X4 S4)
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReasonBody' }
+      responses:
+        '200':
+          description: Deactivated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /app/users/{user_id}/reactivate:
+    post:
+      tags: [admin]
+      operationId: adminReactivateUser
+      summary: Re-enable a deactivated account (roles are NOT restored automatically)
+      x-source: H1 (X4 S4)
+      x-roles: [org_admin, system_admin]
+      x-wave: 1
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/CsrfHeader'
+        - $ref: '#/components/parameters/StepUpHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReasonBody' }
+      responses:
+        '200':
+          description: Reactivated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ───────────────────────────── home ─────────────────────────────
+  /app/dashboard:
+    get:
+      tags: [home]
+      operationId: getDashboard
+      summary: Home page cards for the active tenant and my roles (counts are exact integers from the server)
+      x-source: H1
+      x-roles: ['≥1 UserRole']
+      x-wave: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ───────────────────────────── reference ─────────────────────────────
+  /app/vehicles:
+    get:
+      tags: [reference]
+      operationId: listVehicles
+      summary: Vehicles I may use (system + my personal + my organization) with scope-gate status
+      x-source: H1 (R1 S1; 03 had none)
+      x-roles: ['≥1 UserRole']
+      x-wave: 2
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Vehicle' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /app/product-categories:
+    get:
+      tags: [reference]
+      operationId: listProductCategories
+      summary: Product categories per scheme (IFRA / EU / ASEAN / Thai FDA)
+      x-source: H1 (R2 S1; 03 §3.9 BE-1b)
+      x-roles: ['≥1 UserRole']
+      x-wave: 4
+      parameters:
+        - name: scheme
+          in: query
+          schema: { type: string, enum: [IFRA, EU_cosmetic, ASEAN, Thai_FDA] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProductCategory' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /app/materials:
+    get:
+      tags: [reference]
+      operationId: searchMaterials
+      summary: Search materials to add to a formula (SKU, molecule, own accords/sub-formulas)
+      x-source: H1 (R1 S2; 03 had none)
+      x-roles: ['≥1 UserRole']
+      x-wave: 2
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 2, maxLength: 100 }
+        - name: type
+          in: query
+          schema: { type: string, enum: [sku, molecule, subformula] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/MaterialHit' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /app/skus/{sku_id}:
+    get:
+      tags: [reference]
+      operationId: getSku
+      summary: One commercial SKU
+      x-source: 03 §3.2
+      x-roles: ['≥1 UserRole']
+      x-wave: 4
+      parameters:
+        - name: sku_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sku' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/skus/{sku_id}/lots:
+    get:
+      tags: [reference]
+      operationId: listSkuLots
+      summary: My tenant's lots of this SKU
+      x-source: 03 §3.2
+      x-roles: ['≥1 UserRole']
+      x-wave: 3
+      parameters:
+        - name: sku_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Lot' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/instruments:
+    get:
+      tags: [reference]
+      operationId: listInstruments
+      summary: Lab instruments of my tenant (balances for weighing). Read is open to any role; create stays curator/admin.
+      x-source: 03 §3.4 (read roles widened so formulators can pick a balance — H1)
+      x-roles: ['≥1 UserRole']
+      x-wave: 3
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [balance, pipette, graduated_cylinder, volumetric_flask] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Instrument' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ───────────────────────────── formulas ─────────────────────────────
+  /app/formulas:
+    get:
+      tags: [formulas]
+      operationId: listFormulas
+      summary: Formulas of my tenant (latest version of each)
+      x-source: H1 (R1 S2; 03 had none)
+      x-roles: ['≥1 UserRole']
+      x-wave: 2
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - name: mine
+          in: query
+          description: Only formulas where I am a co-author
+          schema: { type: boolean, default: false }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/FormulaSummary' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [formulas]
+      operationId: createFormula
+      summary: New formula (version 1). Σ pct_by_mass must be exactly 100 — server never normalises.
+      x-source: 03 §3.3
+      x-roles: [formulator, org_admin, system_admin]
+      x-wave: 2
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FormulaInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Formula' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/formulas/{formula_id}:
+    get:
+      tags: [formulas]
+      operationId: getFormula
+      summary: One formula version (latest unless `version` given)
+      x-source: 03 §3.3
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 2
+      parameters:
+        - $ref: '#/components/parameters/FormulaId'
+        - name: version
+          in: query
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Formula' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/formulas/{formula_id}/versions:
+    get:
+      tags: [formulas]
+      operationId: listFormulaVersions
+      summary: Version history (every modify creates a new version; nothing is overwritten)
+      x-source: H1 (R1 S2 diff indicator)
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 2
+      parameters:
+        - $ref: '#/components/parameters/FormulaId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FormulaVersionSummary' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/formulas/{formula_id}/modify:
+    post:
+      tags: [formulas]
+      operationId: modifyFormula
+      summary: Save changes as a new version. 422 `formula.sum_not_100` carries the server-computed difference.
+      x-source: 03 §3.3
+      x-roles: [formulator, org_admin, system_admin]
+      x-wave: 2
+      parameters:
+        - $ref: '#/components/parameters/FormulaId'
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/FormulaInput'
+                - type: object
+                  required: [base_version]
+                  properties:
+                    base_version:
+                      type: integer
+                      minimum: 1
+                      description: The version the user was editing — 409 if someone saved a newer one meanwhile.
+      responses:
+        '201':
+          description: New version created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Formula' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  # ───────────────────────────── analyze ─────────────────────────────
+  /app/formulas/{formula_id}/analyze:
+    post:
+      tags: [analyze]
+      operationId: analyzeFormula
+      summary: Run Analyze. 200 = served from cache (same inputs, seed, snapshot, models). 202 = running — poll the run.
+      x-source: 03 §3.3 (async shape added, H1)
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 2
+      parameters:
+        - $ref: '#/components/parameters/FormulaId'
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version: { type: integer, minimum: 1, description: Defaults to latest }
+                seed:
+                  type: integer
+                  format: int64
+                  description: Omit to let the server choose. Changing it must be shown clearly (R1 §0 rule 6).
+      responses:
+        '200':
+          description: Completed (from cache)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalysisRun' }
+        '202':
+          description: Started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalysisRun' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /app/analysis-runs/{run_id}:
+    get:
+      tags: [analyze]
+      operationId: getAnalysisRun
+      summary: Progress of a run — real sub-steps per module (R1 S3), not a single spinner
+      x-source: H1 (R1 S3; AnalysisRun 00 §6.4.2)
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 2
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalysisRun' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/formulas/{formula_id}/predictions:
+    get:
+      tags: [analyze]
+      operationId: getFormulaResults
+      summary: Results of a run for R1 S4 — reportables with uncertainty, curves (Profile A and B), warnings, diffs
+      x-source: 03 §3.3 (response shaped for R1 S4, H1)
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 2
+      parameters:
+        - $ref: '#/components/parameters/FormulaId'
+        - name: run_id
+          in: query
+          description: Defaults to the latest completed run of the latest version
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FormulaResults' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /app/predictions/{prediction_id}:
+    get:
+      tags: [analyze]
+      operationId: getPrediction
+      summary: One reportable in full — error budget (reducible or not), assumptions, substitutions, seed, model versions
+      x-source: 03 §3.3
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 2
+      parameters:
+        - name: prediction_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PredictionDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/provenance/{provenance_ref}:
+    get:
+      tags: [analyze]
+      operationId: getProvenance
+      summary: Every node behind a number, as a walkable tree (MVP shows a list/tree — no graph drawing, no data cut)
+      x-source: H1 (R1 S5; PredictionInput DAG 00 §6.4)
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 2
+      parameters:
+        - name: provenance_ref
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProvenanceGraph' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────────── lab ─────────────────────────────
+  /app/batches:
+    get:
+      tags: [lab]
+      operationId: listBatches
+      summary: Batches of my tenant
+      x-source: H1 (03 had none)
+      x-roles: ['≥1 UserRole']
+      x-wave: 3
+      parameters:
+        - name: formula_id
+          in: query
+          schema: { type: string }
+        - name: state
+          in: query
+          schema: { type: string, enum: [in_progress, blocked, complete] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/BatchSummary' }
+
+  /app/formulas/{formula_id}/batches:
+    post:
+      tags: [lab]
+      operationId: createBatch
+      summary: Start a batch — server creates one weighing row per formula component with the chosen lots and computed targets
+      x-source: 03 §3.4
+      x-roles: [formulator]
+      x-wave: 3
+      parameters:
+        - $ref: '#/components/parameters/FormulaId'
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BatchCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Batch' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/batches/{batch_id}:
+    get:
+      tags: [lab]
+      operationId: getBatch
+      summary: Batch with every weighing row, verdicts (ok/warn/block) and whether the next step is locked
+      x-source: 03 §3.4
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 3
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Batch' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/batches/{batch_id}/components:
+    post:
+      tags: [lab]
+      operationId: addBatchComponent
+      summary: Add an extra weighing row (rare — normal rows come from createBatch)
+      x-source: 03 §3.4
+      x-roles: [formulator]
+      x-wave: 3
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [formula_component_id, lot_id]
+              properties:
+                formula_component_id: { type: string }
+                lot_id: { type: string }
+      responses:
+        '201':
+          description: Added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchComponent' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/batches/{batch_id}/components/{component_id}:
+    patch:
+      tags: [lab]
+      operationId: recordWeighing
+      summary: Record what was actually weighed on the chosen balance. Always stored, even when the verdict is BLOCK.
+      description: |
+        The server computes `u_mass`, `rel_u` and the verdict (WARN 10–20 %, BLOCK > 20 %, PDC-56) — the UI only shows them.
+        A row can be recorded once; weighing again is `…/reweigh` with a reason (append-only).
+        If per-item balances (PDC-148) are not live yet, `Batch.per_item_balance_supported=false` and the batch balance is used.
+      x-source: 03 §3.4
+      x-roles: [formulator]
+      x-wave: 3
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - $ref: '#/components/parameters/ComponentId'
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WeighingInput' }
+      responses:
+        '200':
+          description: Recorded — read `verdict`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchComponent' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/batches/{batch_id}/components/{component_id}/reweigh:
+    post:
+      tags: [lab]
+      operationId: reweighComponent
+      summary: Weigh again — creates a new row that supersedes the old one (old row kept). Reason required.
+      x-source: H1 (X3 S2; PDC-158)
+      x-roles: [formulator]
+      x-wave: 3
+      x-pending: PDC-158 (BatchComponent.supersedes_component_id + reweigh_reason not in 00 yet)
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - $ref: '#/components/parameters/ComponentId'
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/WeighingInput'
+                - type: object
+                  required: [reason]
+                  properties:
+                    reason: { $ref: '#/components/schemas/Reason' }
+      responses:
+        '201':
+          description: New row
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchComponent' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/batches/{batch_id}/components/{component_id}/pre-dilution:
+    post:
+      tags: [lab]
+      operationId: recordPreDilution
+      summary: The only way out of BLOCK — record the dilution you prepared; server returns a new row to weigh the solution
+      description: No role can skip BLOCK (user decision 2026-09-23). The dilution ratio comes from the user; the new target is computed by the server.
+      x-source: H1 (X3 S3)
+      x-roles: [formulator]
+      x-wave: 3
+      x-pending: PDC-152 (SamplePrepRecord has no tenant_id yet)
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - $ref: '#/components/parameters/ComponentId'
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PreDilutionInput' }
+      responses:
+        '201':
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sample_prep_id, new_component]
+                properties:
+                  sample_prep_id: { type: string }
+                  new_component: { $ref: '#/components/schemas/BatchComponent' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/batches/{batch_id}/mixing-sheet:
+    get:
+      tags: [lab]
+      operationId: getMixingSheet
+      summary: Mixing sheet as data (Accept application/json) or printable PDF (Accept application/pdf)
+      x-source: 03 §3.4
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 3
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - $ref: '#/components/parameters/LocaleQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MixingSheet' }
+            application/pdf:
+              schema: { type: string, format: binary }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/batches/{batch_id}/label:
+    get:
+      tags: [lab]
+      operationId: getBatchLabelPdf
+      summary: QR label sheet PDF for a normal printer
+      x-source: 03 §3.4
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 3
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - $ref: '#/components/parameters/LocaleQuery'
+        - name: layout_id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/label-layouts:
+    get:
+      tags: [lab]
+      operationId: listLabelLayouts
+      summary: Sticker sheet layouts the label PDF supports (e.g. A4 3×8)
+      x-source: H1 (X3 S4)
+      x-roles: ['≥1 UserRole']
+      x-wave: 3
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LabelLayout' }
+
+  # ───────────────────────────── compliance ─────────────────────────────
+  /app/formulas/{formula_id}/compliance-findings:
+    get:
+      tags: [compliance]
+      operationId: getComplianceReport
+      summary: Findings grouped by jurisdiction (EU/TH/ASEAN/US never merged), hard block, disclaimer from data
+      x-source: 03 §3.3 (response shaped for R2 S1, H1)
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 4
+      parameters:
+        - $ref: '#/components/parameters/FormulaId'
+        - name: version
+          in: query
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceReport' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/formulas/{formula_id}/document-completeness:
+    get:
+      tags: [compliance]
+      operationId: getFormulaDocumentCompleteness
+      summary: Which SKUs/lots used by this formula are missing documents (R2 S2 entry list)
+      x-source: H1 (R2 S2; 00 §5.5)
+      x-roles: ['≥1 UserRole (tenant owner)']
+      x-wave: 4
+      parameters:
+        - $ref: '#/components/parameters/FormulaId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CompletenessRow' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/document-completeness:
+    get:
+      tags: [compliance]
+      operationId: getDocumentCompleteness
+      summary: Completeness score of one SKU or lot (a risk indicator, not a gate)
+      x-source: H1 (R2 S2; 00 §5.5 DocumentCompletenessScore)
+      x-roles: ['≥1 UserRole']
+      x-wave: 4
+      parameters:
+        - $ref: '#/components/parameters/SubjectType'
+        - $ref: '#/components/parameters/SubjectId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentCompleteness' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /app/documents:
+    get:
+      tags: [compliance]
+      operationId: listDocuments
+      summary: Documents attached to a SKU or lot — all versions, newest first (old SDS never hidden)
+      x-source: H1 (R2 S2/S3; 03 §3.9 BE-1b)
+      x-roles: ['≥1 UserRole']
+      x-wave: 4
+      parameters:
+        - $ref: '#/components/parameters/SubjectType'
+        - $ref: '#/components/parameters/SubjectId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Document' }
+    post:
+      tags: [compliance]
+      operationId: uploadDocument
+      summary: Upload — server checks type from file content, size, and malware scan before any parser (S8)
+      description: |
+        Wrong subject for the type is refused (COA/GC-MS → lot only; SDS/TDS/IFRA CoC/allergen declaration → SKU only).
+        The UI blocks it first, and the server checks again. Returns 202 with `processing_status=queued` — poll the document.
+      x-source: H1 (R2 S3; 03 §3.9 BE-1b)
+      x-roles: [formulator, data_curator, org_admin, system_admin]
+      x-wave: 4
+      x-pending: PDC-159 (Document.processing_status / rejection_code not in 00 yet)
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, doc_type, applies_to_type, applies_to_id]
+              properties:
+                file: { type: string, format: binary }
+                doc_type: { $ref: '#/components/schemas/DocType' }
+                applies_to_type: { type: string, enum: [sku, lot] }
+                applies_to_id: { type: string }
+                supersedes_document_id:
+                  type: string
+                  description: Set when this is a newer revision (e.g. SDS v2) — the old one stays visible
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedType' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /app/documents/{document_id}:
+    get:
+      tags: [compliance]
+      operationId: getDocument
+      summary: One document and its processing status (queued → scanning → parsing → done / rejected)
+      x-source: H1 (R2 S3)
+      x-roles: ['≥1 UserRole']
+      x-wave: 4
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-aipe_session
+      description: HttpOnly, Secure, SameSite=Strict. The browser sends it; JavaScript never reads it.
+
+  parameters:
+    CsrfHeader:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema: { type: string }
+    StepUpHeader:
+      name: X-Step-Up-Token
+      in: header
+      required: true
+      description: From `POST /app/auth/step-up`. Missing/expired → 403 `auth.step_up_required`.
+      schema: { type: string }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: page_size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    Q:
+      name: q
+      in: query
+      schema: { type: string, maxLength: 100 }
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema: { type: string }
+    FormulaId:
+      name: formula_id
+      in: path
+      required: true
+      schema: { type: string }
+    BatchId:
+      name: batch_id
+      in: path
+      required: true
+      schema: { type: string }
+    ComponentId:
+      name: component_id
+      in: path
+      required: true
+      schema: { type: string }
+    SubjectType:
+      name: subject_type
+      in: query
+      required: true
+      schema: { type: string, enum: [sku, lot] }
+    SubjectId:
+      name: subject_id
+      in: query
+      required: true
+      schema: { type: string }
+    LocaleQuery:
+      name: locale
+      in: query
+      schema: { $ref: '#/components/schemas/Locale' }
+
+  responses:
+    AcceptedCheckEmail:
+      description: Accepted — same body in every case (no account enumeration)
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status: { type: string, enum: [check_email] }
+    Unauthorized:
+      description: Not logged in, session expired, or wrong credentials/code
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: about:blank
+            title: Unauthorized
+            status: 401
+            code: auth.invalid_credentials
+            ref_id: ERR-7Q2K9D
+    Forbidden:
+      description: Role, license, scope gate, CSRF or step-up refused. Details are deliberately coarse.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: about:blank
+            title: Forbidden
+            status: 403
+            code: access.forbidden
+            ref_id: ERR-3M8P1X
+    NotFound:
+      description: Not found — also returned for another tenant's resources (never 403, S2)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: State conflict (version diverged, already recorded, hard block, model changed …)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Gone:
+      description: Expired (e.g. MFA setup took too long — start again)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationFailed:
+      description: Input failed validation. `errors[]` lists fields; formula sums carry `formula_sum`.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: about:blank
+            title: Validation failed
+            status: 422
+            code: formula.sum_not_100
+            ref_id: ERR-9D4T2A
+            formula_sum:
+              declared_sum: { value: 97.4, unit: '%', display_decimals: 3 }
+              difference: { value: -2.6, unit: '%', display_decimals: 3 }
+    TokenInvalid:
+      description: Link token invalid, used, or expired
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TooLarge:
+      description: File too large
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    UnsupportedType:
+      description: File type not allowed (judged from content, not the file name)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    RateLimited:
+      description: Too many attempts — `Retry-After` header says when to try again
+      headers:
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ServerError:
+      description: Fail-closed server error — no internal detail
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    # ── numbers ──
+    Quantity:
+      type: object
+      description: An exact / declared / input number (target mass, pct_by_mass, limit, readability, rel_u). No uncertainty by nature.
+      required: [value, unit, display_decimals]
+      properties:
+        value: { type: number }
+        unit: { type: string, examples: ['g', '%', 'mL', 'h'] }
+        display_decimals: { type: integer, minimum: 0, maximum: 8 }
+    ReportedValue:
+      type: object
+      description: |
+        An estimate of a real-world quantity. Never shown without its interval and tier (ValueWithUncertainty).
+        Tier = weakest input in the chain (R6). T6 must always be flagged red.
+      required: [kind, value, interval, tier, unit, display_decimals, provenance_ref]
+      properties:
+        kind: { type: string, const: reported }
+        value: { type: number }
+        interval:
+          type: object
+          required: [low, high, level]
+          properties:
+            low: { type: number }
+            high: { type: number }
+            level: { type: number, description: Coverage in percent, e.g. 95 }
+        tier: { $ref: '#/components/schemas/Tier' }
+        unit: { type: string }
+        display_decimals: { type: integer, minimum: 0, maximum: 8 }
+        provenance_ref: { type: string, description: 'Open with GET /app/provenance/{provenance_ref}' }
+        confidence_label: { type: string, enum: [HIGH, MEDIUM, LOW, EXPERIMENTAL] }
+        ad_status: { type: string, enum: [IN, BORDERLINE, OUT], description: Applicability domain }
+    MissingValue:
+      type: object
+      description: No number to show — say why. "Not measured" and "no data" are different states (NFR-30).
+      required: [kind, state, reason_code]
+      properties:
+        kind: { type: string, const: missing }
+        state: { type: string, enum: [unquantified, not_measured, no_data, out_of_scope, needs_calibration] }
+        reason_code: { type: string }
+        reason_ref: { type: string, description: Optional provenance/explanation link }
+    ValueOrMissing:
+      oneOf:
+        - $ref: '#/components/schemas/ReportedValue'
+        - $ref: '#/components/schemas/MissingValue'
+      discriminator:
+        propertyName: kind
+        mapping:
+          reported: '#/components/schemas/ReportedValue'
+          missing: '#/components/schemas/MissingValue'
+    DecimalString:
+      type: string
+      description: A decimal typed by the user, kept as text so trailing zeros survive ("2.5000").
+      pattern: '^[0-9]{1,7}(\.[0-9]{1,6})?$'
+    Tier:
+      type: string
+      enum: [T1, T2, T3, T4, T5, T6]
+      description: 'T1 measured on this lot · T2 measured, reference source · T3 physics-computed · T4 QSPR/ML in-domain · T5 group contribution/read-across · T6 assumed default (always red flag). 00 R6.'
+
+    # ── errors ──
+    Problem:
+      type: object
+      description: RFC 9457 problem details. Show the message for `code` from the catalogue plus `ref_id`; nothing else.
+      required: [type, title, status, code, ref_id]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        ref_id: { type: string, description: Reference to quote to an admin; maps to the server log }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, code]
+            properties:
+              field: { type: string }
+              code: { type: string }
+        formula_sum:
+          type: object
+          description: Only with `formula.sum_not_100` — both numbers computed by the server
+          required: [declared_sum, difference]
+          properties:
+            declared_sum: { $ref: '#/components/schemas/Quantity' }
+            difference: { $ref: '#/components/schemas/Quantity' }
+        retry_after_seconds: { type: integer, minimum: 1 }
+    ErrorCode:
+      type: string
+      enum:
+        - auth.invalid_credentials
+        - auth.session_expired
+        - auth.mfa_invalid
+        - auth.email_not_verified
+        - auth.account_deactivated
+        - auth.too_many_attempts
+        - auth.token_invalid
+        - auth.password_policy
+        - auth.step_up_required
+        - auth.csrf_invalid
+        - auth.signup_closed
+        - access.forbidden
+        - access.self_grant_refused
+        - resource.not_found
+        - conflict.state
+        - conflict.version_diverged
+        - conflict.mfa_required_by_role
+        - analysis.model_changed
+        - scope.vehicle_out_of_scope
+        - compliance.hard_block
+        - formula.sum_not_100
+        - validation.failed
+        - lab.already_recorded
+        - lab.instrument_not_eligible
+        - lab.too_many_decimals
+        - lab.next_step_blocked
+        - upload.too_large
+        - upload.unsupported_type
+        - upload.wrong_subject
+        - upload.scan_failed
+        - rate_limited
+        - server.error
+        - server.unavailable
+
+    # ── public / auth ──
+    Locale:
+      type: string
+      enum: [th, en]
+    PublicConfig:
+      type: object
+      required: [signup_enabled, email_delivery_enabled, supported_locales, password_min_length, mfa_required_roles]
+      properties:
+        signup_enabled: { type: boolean }
+        signup_email_domains:
+          type: array
+          items: { type: string }
+          description: 'Empty = any domain. User decided 2026-09-25: no restriction, so the MVP server always sends an empty list.'
+        email_delivery_enabled: { type: boolean, description: false → hide forgot-password; show "contact your admin" }
+        supported_locales:
+          type: array
+          items: { $ref: '#/components/schemas/Locale' }
+        password_min_length:
+          type: integer
+          minimum: 8
+          description: Set by the user before real testing (same rule as session numbers); UI only reads it.
+        mfa_required_roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleId' }
+        session_idle_minutes:
+          type: [integer, 'null']
+          description: null until the user sets it during real testing (X1 §0 rule 5)
+    LegalDocument:
+      type: object
+      required: [document_id, kind, version, effective_at, path]
+      properties:
+        document_id: { type: string }
+        kind: { type: string, enum: [terms, privacy] }
+        version: { type: string }
+        effective_at: { type: string, format: date }
+        path: { type: string, description: 'Public page in the frontend, e.g. /legal/privacy' }
+    ConsentRecord:
+      type: object
+      required: [document_id, kind, version, accepted_at]
+      properties:
+        document_id: { type: string }
+        kind: { type: string, enum: [terms, privacy] }
+        version: { type: string }
+        accepted_at: { type: string, format: date-time }
+    EmailOnly:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+    Password:
+      type: string
+      minLength: 8
+      maxLength: 256
+      description: Real minimum comes from PublicConfig.password_min_length. No composition rules; the server may reject known-breached passwords.
+    TotpCode:
+      type: string
+      pattern: '^[0-9]{6}$'
+    SignupRequest:
+      type: object
+      required: [name, email, password, locale, accepted]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 254 }
+        password: { $ref: '#/components/schemas/Password' }
+        locale: { $ref: '#/components/schemas/Locale' }
+        accepted:
+          type: array
+          description: Terms and privacy versions shown on the form — both required
+          minItems: 2
+          items:
+            type: object
+            required: [document_id, version]
+            properties:
+              document_id: { type: string }
+              version: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, maxLength: 256 }
+    LoginResult:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [authenticated, mfa_required, mfa_setup_required]
+          description: 'mfa_setup_required = a role you hold requires MFA and you have none — no "later" button (X1 §0 rule 4)'
+        challenge_id: { type: string, description: For mfa_required / mfa_setup_required }
+        csrf_token: { type: string, description: Only when authenticated — keep in memory }
+    MfaVerifyRequest:
+      type: object
+      required: [challenge_id, code, method]
+      properties:
+        challenge_id: { type: string }
+        method: { type: string, enum: [totp, recovery_code] }
+        code: { type: string, minLength: 6, maxLength: 32 }
+    MfaSetup:
+      type: object
+      required: [setup_id, qr_image, manual_key, expires_at]
+      properties:
+        setup_id: { type: string }
+        qr_image: { type: string, description: 'data:image/png;base64,… — render in <img> only' }
+        manual_key: { type: string, description: Base32 key, grouped for typing }
+        expires_at: { type: string, format: date-time }
+    MfaStatus:
+      type: object
+      required: [enrolled, required_by_role, recovery_codes_remaining]
+      properties:
+        enrolled: { type: boolean }
+        required_by_role: { type: boolean }
+        recovery_codes_remaining: { type: integer, minimum: 0 }
+    SessionInfo:
+      type: object
+      required: [csrf_token, active_tenant_id]
+      properties:
+        csrf_token: { type: string }
+        active_tenant_id: { type: [string, 'null'] }
+        idle_expires_at: { type: [string, 'null'], format: date-time }
+        absolute_expires_at: { type: [string, 'null'], format: date-time }
+    SessionSummary:
+      type: object
+      required: [session_id, current, created_at, last_seen_at, device_label]
+      properties:
+        session_id: { type: string }
+        current: { type: boolean }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+        device_label: { type: string, description: 'Coarse, e.g. "Chrome · Windows" — no full IP (PDPA)' }
+
+    # ── identity ──
+    RoleId:
+      type: string
+      enum: [formulator, data_curator, safety_assessor, org_admin, system_admin, approver, legal_reviewer]
+      description: The 7 fixed roles of 00 §9.2 (PDC-143). Not configurable.
+    Reason:
+      type: string
+      minLength: 3
+      maxLength: 1000
+    ReasonBody:
+      type: object
+      required: [reason]
+      properties:
+        reason: { $ref: '#/components/schemas/Reason' }
+    Membership:
+      type: object
+      required: [tenant_id, tenant_name, roles]
+      properties:
+        tenant_id: { type: string }
+        tenant_name: { type: string }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleId' }
+    Me:
+      type: object
+      required: [user_id, email, name, locale, email_verified, memberships, active_tenant_id, active_roles, has_any_role, mfa, consents_pending, tutorial_status]
+      properties:
+        user_id: { type: string }
+        email: { type: string, format: email }
+        name: { type: string }
+        locale: { $ref: '#/components/schemas/Locale' }
+        email_verified: { type: boolean }
+        memberships:
+          type: array
+          items: { $ref: '#/components/schemas/Membership' }
+        active_tenant_id: { type: [string, 'null'], description: null + several memberships → show tenant picker (X1 S4) }
+        active_roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleId' }
+        has_any_role: { type: boolean, description: false → waiting-for-access page only }
+        mfa:
+          type: object
+          required: [enrolled, required]
+          properties:
+            enrolled: { type: boolean }
+            required: { type: boolean }
+        consents_pending:
+          type: array
+          description: Non-empty → show the accept-new-version screen before anything else
+          items: { $ref: '#/components/schemas/LegalDocument' }
+        tutorial_status: { type: string, enum: [not_started, in_progress, completed, skipped] }
+    UserListStatus:
+      type: string
+      enum: [pending_approval, active, unverified, deactivated]
+      description: 'pending_approval = e-mail verified, active, no role yet (derived, not stored)'
+    UserSummary:
+      type: object
+      required: [user_id, name, email, status, roles, mfa_enrolled]
+      properties:
+        user_id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        status: { $ref: '#/components/schemas/UserListStatus' }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleId' }
+        mfa_enrolled: { type: boolean }
+        last_login_at: { type: [string, 'null'], format: date-time }
+        signed_up_at: { type: string, format: date-time }
+    UserDetail:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            is_self: { type: boolean, description: true → UI shows no grant buttons on this row (S3) }
+            role_grants:
+              type: array
+              items:
+                type: object
+                required: [role_id, granted_by_name, granted_at]
+                properties:
+                  role_id: { $ref: '#/components/schemas/RoleId' }
+                  granted_by_name: { type: string }
+                  granted_at: { type: string, format: date-time }
+
+    # ── preferences / tutorial ──
+    Preferences:
+      type: object
+      required: [locale, mascot_tips_enabled]
+      properties:
+        locale: { $ref: '#/components/schemas/Locale' }
+        mascot_tips_enabled: { type: boolean }
+        dismissed_tip_ids:
+          type: array
+          items: { type: string }
+    PreferencesPatch:
+      type: object
+      properties:
+        locale: { $ref: '#/components/schemas/Locale' }
+        mascot_tips_enabled: { type: boolean }
+        dismiss_tip_id: { type: string }
+        reset_dismissed_tips: { type: boolean }
+    TutorialProgress:
+      type: object
+      required: [status, quests]
+      properties:
+        status: { type: string, enum: [not_started, in_progress, completed, skipped] }
+        resume:
+          type: [object, 'null']
+          properties:
+            quest_id: { type: string }
+            step_id: { type: string }
+        quests:
+          type: array
+          items:
+            type: object
+            required: [quest_id, state, steps_done, steps_total]
+            properties:
+              quest_id: { type: string, description: 'Ids defined by the frontend quest catalogue, e.g. q0-shell' }
+              state: { type: string, enum: [locked, available, in_progress, completed, skipped] }
+              steps_done: { type: integer, minimum: 0 }
+              steps_total: { type: integer, minimum: 1 }
+              completed_at: { type: [string, 'null'], format: date-time }
+        badges:
+          type: array
+          items:
+            type: object
+            required: [badge_id, earned_at]
+            properties:
+              badge_id: { type: string }
+              earned_at: { type: string, format: date-time }
+    TutorialEvent:
+      type: object
+      required: [event]
+      properties:
+        event: { type: string, enum: [step_done, quest_done, quest_skipped, skip_all, reset] }
+        quest_id: { type: string }
+        step_id: { type: string }
+
+    # ── home ──
+    Dashboard:
+      type: object
+      required: [recent_formulas, open_batches, documents_missing, pending_access_requests]
+      properties:
+        recent_formulas:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/FormulaSummary' }
+        open_batches:
+          type: object
+          required: [in_progress, blocked]
+          properties:
+            in_progress: { type: integer, minimum: 0 }
+            blocked: { type: integer, minimum: 0 }
+        documents_missing: { type: integer, minimum: 0, description: SKUs/lots in my formulas with a missing required document }
+        pending_access_requests:
+          type: [integer, 'null']
+          minimum: 0
+          description: Admins only; null for everyone else
+
+    # ── reference ──
+    Vehicle:
+      type: object
+      required: [vehicle_id, name, class, in_scope, vehicle_type, standard_substances]
+      properties:
+        vehicle_id: { type: string }
+        name: { type: string }
+        class: { type: string, description: 'v1 accepts hydroalcoholic only (INV-10)' }
+        in_scope: { type: boolean }
+        out_of_scope_reason_code: { type: [string, 'null'] }
+        vehicle_type: { type: string, enum: [system, personal, organization] }
+        standard_substances:
+          type: array
+          description: Tier status of the standard carrier substances (R1 S1)
+          items:
+            type: object
+            required: [name, tier]
+            properties:
+              name: { type: string }
+              tier: { $ref: '#/components/schemas/Tier' }
+    ProductCategory:
+      type: object
+      required: [category_id, scheme, code, label, exposure_type, product_class]
+      properties:
+        category_id: { type: string }
+        scheme: { type: string, enum: [IFRA, EU_cosmetic, ASEAN, Thai_FDA] }
+        code: { type: string }
+        label: { type: string }
+        exposure_type: { type: string, enum: [leave-on, rinse-off, mucosa, non-skin] }
+        product_class: { type: string, enum: [cosmetic, non_cosmetic_scented] }
+    MaterialHit:
+      type: object
+      required: [component_type, ref_id, display_name]
+      properties:
+        component_type: { type: string, enum: [sku, molecule, subformula] }
+        ref_id: { type: string }
+        display_name: { type: string }
+        cas: { type: [string, 'null'] }
+        supplier_name: { type: [string, 'null'] }
+        grade_label: { type: [string, 'null'] }
+        grade_is_system_default: { type: boolean, description: true → show the "grade not specified" flag (R4/R7) }
+        dilution: { $ref: '#/components/schemas/Dilution' }
+        license_tag: { type: [string, 'null'], description: Display layer of the license gate (00 §9.3) }
+    Dilution:
+      type: [object, 'null']
+      required: [pct, diluent_name]
+      properties:
+        pct: { $ref: '#/components/schemas/Quantity' }
+        diluent_name: { type: string }
+    Sku:
+      type: object
+      required: [sku_id, label_name, supplier_name, content_type]
+      properties:
+        sku_id: { type: string }
+        label_name: { type: string }
+        supplier_name: { type: string }
+        supplier_sku_code: { type: [string, 'null'] }
+        content_type: { type: string, enum: [single_molecule, natural, accord, mixture] }
+        grade_label: { type: string }
+        grade_is_system_default: { type: boolean }
+        dilution: { $ref: '#/components/schemas/Dilution' }
+    Lot:
+      type: object
+      required: [lot_id, sku_id, lot_code]
+      properties:
+        lot_id: { type: string }
+        sku_id: { type: string }
+        lot_code: { type: string }
+        received_at: { type: [string, 'null'], format: date }
+        expires_at: { type: [string, 'null'], format: date }
+    Instrument:
+      type: object
+      required: [instrument_id, code, type, readability, cal_due, selectable]
+      properties:
+        instrument_id: { type: string }
+        code: { type: string, examples: ['BAL-0.0001'] }
+        type: { type: string, enum: [balance, pipette, graduated_cylinder, volumetric_flask] }
+        model: { type: [string, 'null'] }
+        readability: { $ref: '#/components/schemas/Quantity' }
+        input_decimals: { type: integer, minimum: 0, maximum: 6, description: Max decimals the user may type for this instrument }
+        cal_due: { type: [string, 'null'], format: date }
+        qualification_status: { type: string, enum: [qualified, expired, not_qualified] }
+        selectable: { type: boolean }
+        not_selectable_reason_code: { type: [string, 'null'], examples: [calibration_expired, not_qualified] }
+
+    # ── formulas ──
+    FormulaComponentInput:
+      type: object
+      required: [component_type, ref_id, pct_by_mass]
+      properties:
+        component_type: { type: string, enum: [sku, molecule, subformula] }
+        ref_id: { type: string }
+        pct_by_mass: { $ref: '#/components/schemas/DecimalString' }
+    ApplicationInput:
+      type: object
+      description: Application conditions (09 §Application) — inputs, never silent defaults
+      required: [sprays_n, distance_cm, substrate]
+      properties:
+        sprays_n: { type: integer, minimum: 1, maximum: 50 }
+        distance_cm: { $ref: '#/components/schemas/DecimalString' }
+        site: { type: [string, 'null'], enum: [wrist, neck, inner_elbow, chest, null] }
+        substrate: { type: string, enum: [skin, blotter, fabric, hair] }
+    FormulaInput:
+      type: object
+      required: [name, vehicle_id, concentration_class, application, components]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        code: { type: [string, 'null'], maxLength: 50 }
+        vehicle_id: { type: string }
+        concentration_class: { type: string, enum: [EdC, EdT, EdP, Extrait] }
+        concentration_pct: { $ref: '#/components/schemas/DecimalString' }
+        product_category_id: { type: [string, 'null'] }
+        intent_brief: { type: [string, 'null'], maxLength: 2000 }
+        application: { $ref: '#/components/schemas/ApplicationInput' }
+        components:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/FormulaComponentInput' }
+    FormulaComponent:
+      type: object
+      required: [formula_component_id, component_type, ref_id, display_name, pct_by_mass]
+      properties:
+        formula_component_id: { type: string }
+        component_type: { type: string, enum: [sku, molecule, subformula, practical_pre_dilution_diluent] }
+        ref_id: { type: string }
+        display_name: { type: string }
+        pct_by_mass: { $ref: '#/components/schemas/Quantity' }
+        counts_toward_sum: { type: boolean, description: false for practical_pre_dilution_diluent rows (PDC-70) }
+        grade_is_system_default: { type: boolean }
+        subformula_formula_id: { type: [string, 'null'] }
+    FormulaSummary:
+      type: object
+      required: [formula_id, name, version, updated_at, vehicle_name]
+      properties:
+        formula_id: { type: string }
+        name: { type: string }
+        code: { type: [string, 'null'] }
+        version: { type: integer }
+        updated_at: { type: string, format: date-time }
+        updated_by_name: { type: string }
+        vehicle_name: { type: string }
+        last_run_status: { type: [string, 'null'], enum: [running, completed, failed, null] }
+        compliance_hard_block: { type: boolean }
+    Formula:
+      type: object
+      required: [formula_id, name, version, vehicle, concentration_class, application, components, declared_sum, co_authors, compliance_hard_block]
+      properties:
+        formula_id: { type: string }
+        name: { type: string }
+        code: { type: [string, 'null'] }
+        version: { type: integer }
+        parent_version: { type: [integer, 'null'] }
+        vehicle: { $ref: '#/components/schemas/Vehicle' }
+        concentration_class: { type: string, enum: [EdC, EdT, EdP, Extrait] }
+        concentration_pct: { $ref: '#/components/schemas/Quantity' }
+        product_category: { oneOf: [{ $ref: '#/components/schemas/ProductCategory' }, { type: 'null' }] }
+        application:
+          allOf:
+            - $ref: '#/components/schemas/ApplicationInput'
+        diluent_carryover:
+          type: array
+          description: Computed by the server from diluted SKUs — never user input (09 §3.3)
+          items:
+            type: object
+            required: [diluent_name, pct_by_mass]
+            properties:
+              diluent_name: { type: string }
+              pct_by_mass: { $ref: '#/components/schemas/Quantity' }
+        components:
+          type: array
+          items: { $ref: '#/components/schemas/FormulaComponent' }
+        declared_sum: { $ref: '#/components/schemas/Quantity' }
+        co_authors:
+          type: array
+          items:
+            type: object
+            required: [user_id, name, role_in_formula]
+            properties:
+              user_id: { type: string }
+              name: { type: string }
+              role_in_formula: { type: string, enum: [primary, contributor] }
+        compliance_hard_block: { type: boolean, description: true → Analyze/Save disabled with the hard-block message (R2 S1a) }
+        can_edit: { type: boolean, description: Convenience only — server still checks }
+    FormulaVersionSummary:
+      type: object
+      required: [version, created_at, created_by_name]
+      properties:
+        version: { type: integer }
+        created_at: { type: string, format: date-time }
+        created_by_name: { type: string }
+        components_changed: { type: integer, minimum: 0 }
+
+    # ── analyze ──
+    AnalysisStep:
+      type: object
+      required: [step_id, module, label_key, status]
+      properties:
+        step_id: { type: string }
+        module: { type: string, enum: [scope_gate, M2, M3, M10, M4] }
+        label_key: { type: string, description: i18n key; the FR refs are for the "view reference" link }
+        fr_refs:
+          type: array
+          items: { type: string }
+        status: { type: string, enum: [pending, running, done, failed, unquantified] }
+        reason_code: { type: [string, 'null'] }
+    AnalysisRun:
+      type: object
+      required: [run_id, formula_id, formula_version, mode, seed, status, steps, from_cache]
+      properties:
+        run_id: { type: string }
+        formula_id: { type: string }
+        formula_version: { type: integer }
+        mode: { type: string, enum: [analyze, generate, modify] }
+        seed: { type: integer, format: int64 }
+        status: { type: string, enum: [running, completed, failed] }
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/AnalysisStep' }
+        from_cache: { type: boolean }
+        elapsed_ms: { type: integer, minimum: 0 }
+        data_snapshot_id: { type: [string, 'null'] }
+        model_versions:
+          type: object
+          additionalProperties: { type: string }
+    Reportable:
+      type: object
+      required: [prediction_id, endpoint, label_key, value, error_budget_top]
+      properties:
+        prediction_id: { type: string }
+        endpoint: { type: string, examples: [longevity_h, projection, sillage, perceptual_share] }
+        label_key: { type: string }
+        value: { $ref: '#/components/schemas/ValueOrMissing' }
+        error_budget_top:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/ErrorBudgetItem' }
+        raw_value: { oneOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }] }
+        substitutions_count: { type: integer, minimum: 0 }
+        assumptions_count: { type: integer, minimum: 0 }
+    CurvePoint:
+      type: object
+      required: [t, mid, low, high]
+      description: Band is mandatory — a curve without low/high cannot be drawn (R1 §0 rule 5)
+      properties:
+        t: { type: number }
+        mid: { type: number }
+        low: { type: number }
+        high: { type: number }
+    CurveSeries:
+      type: object
+      required: [series_id, label, points]
+      properties:
+        series_id: { type: string }
+        label: { type: string }
+        pyramid_role: { type: [string, 'null'], enum: [top, heart, base, null] }
+        points:
+          type: array
+          items: { $ref: '#/components/schemas/CurvePoint' }
+    FormulaResults:
+      type: object
+      required: [run, reportables, curves, warnings, diff]
+      properties:
+        run: { $ref: '#/components/schemas/AnalysisRun' }
+        reportables:
+          type: array
+          items: { $ref: '#/components/schemas/Reportable' }
+        curves:
+          type: object
+          required: [time_unit, y_unit, profile_a, profile_b]
+          properties:
+            time_unit: { type: string, const: h }
+            y_unit: { type: string, const: '%' }
+            profile_a:
+              type: array
+              items: { $ref: '#/components/schemas/CurveSeries' }
+            profile_b:
+              type: array
+              items: { $ref: '#/components/schemas/CurveSeries' }
+        warnings:
+          type: array
+          items:
+            type: object
+            required: [warning_id, kind, message_key]
+            properties:
+              warning_id: { type: string }
+              kind: { type: string, enum: [m_chem, muddy, clash] }
+              message_key: { type: string }
+              involved:
+                type: array
+                items: { type: string }
+        diff:
+          type: object
+          description: Two separate indicators — never one banner (R1 §0 rule 7)
+          required: [input_changed, model_changed]
+          properties:
+            input_changed: { type: boolean }
+            compared_to_version: { type: [integer, 'null'] }
+            model_changed: { type: boolean }
+            model_versions_before:
+              type: [object, 'null']
+              additionalProperties: { type: string }
+    ErrorBudgetItem:
+      type: object
+      required: [source_label, share, reducible, provenance_ref]
+      properties:
+        source_label: { type: string }
+        share: { $ref: '#/components/schemas/Quantity' }
+        reducible: { type: boolean }
+        how_to_reduce_key: { type: [string, 'null'] }
+        provenance_ref: { type: string, description: Never a dead end (R1 §0 rule 2) }
+    PredictionDetail:
+      type: object
+      required: [prediction_id, endpoint, value, min_tier_in_chain, error_budget, assumptions, seed, model_versions, provenance_ref]
+      properties:
+        prediction_id: { type: string }
+        endpoint: { type: string }
+        value: { $ref: '#/components/schemas/ValueOrMissing' }
+        min_tier_in_chain: { $ref: '#/components/schemas/Tier' }
+        raw_value: { oneOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }] }
+        error_budget:
+          type: array
+          items: { $ref: '#/components/schemas/ErrorBudgetItem' }
+        assumptions:
+          type: array
+          items:
+            type: object
+            required: [assumption_key, tier]
+            properties:
+              assumption_key: { type: string }
+              detail: { type: string }
+              tier: { $ref: '#/components/schemas/Tier' }
+        substitutions:
+          type: array
+          items:
+            type: object
+            required: [original, substitute, u_inflation]
+            properties:
+              original: { type: string }
+              substitute: { type: string }
+              u_inflation: { $ref: '#/components/schemas/Quantity' }
+        seed: { type: integer, format: int64 }
+        data_snapshot_id: { type: [string, 'null'] }
+        model_versions:
+          type: object
+          additionalProperties: { type: string }
+        provenance_ref: { type: string }
+    ProvenanceNode:
+      type: object
+      required: [node_id, kind, label, children]
+      properties:
+        node_id: { type: string }
+        kind: { type: string, enum: [prediction, observation, document, model, assumption, input_formula] }
+        label: { type: string }
+        tier: { oneOf: [{ $ref: '#/components/schemas/Tier' }, { type: 'null' }] }
+        value: { oneOf: [{ $ref: '#/components/schemas/ValueOrMissing' }, { type: 'null' }] }
+        sensitivity_share: { oneOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }] }
+        source:
+          type: [object, 'null']
+          properties:
+            document_id: { type: string }
+            title: { type: string }
+            locator: { type: string }
+            license_tag: { type: string }
+        children:
+          type: array
+          items: { type: string }
+    ProvenanceGraph:
+      type: object
+      required: [root_node_id, nodes]
+      properties:
+        root_node_id: { type: string }
+        nodes:
+          type: array
+          items: { $ref: '#/components/schemas/ProvenanceNode' }
+
+    # ── lab ──
+    BatchCreate:
+      type: object
+      required: [target_mass_g, component_lots]
+      properties:
+        target_mass_g: { $ref: '#/components/schemas/DecimalString' }
+        batch_date: { type: string, format: date }
+        formula_version: { type: integer, minimum: 1 }
+        component_lots:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [formula_component_id, lot_id]
+            properties:
+              formula_component_id: { type: string }
+              lot_id: { type: string }
+    Verdict:
+      type: [string, 'null']
+      enum: [ok, warn, block, null]
+      description: 'warn: rel_u 10–20 % (recorded + flagged) · block: rel_u > 20 % (recorded; next step locked; pre-dilute) · null = not weighed yet'
+    BatchComponent:
+      type: object
+      required: [component_id, material_label, lot_code, mass_target, dosing_unit, verdict, superseded]
+      properties:
+        component_id: { type: string }
+        formula_component_id: { type: string }
+        material_label: { type: string }
+        lot_id: { type: string }
+        lot_code: { type: string }
+        mass_target: { $ref: '#/components/schemas/Quantity' }
+        dosing_unit: { type: string, enum: [mass, volume, drop] }
+        instrument:
+          type: [object, 'null']
+          required: [instrument_id, code, readability]
+          properties:
+            instrument_id: { type: string }
+            code: { type: string }
+            readability: { $ref: '#/components/schemas/Quantity' }
+        suggested_instrument_id:
+          type: [string, 'null']
+          description: A hint only — the user must pick (X3 §0 rule 1). Never pre-select it.
+        mass_actual: { oneOf: [{ $ref: '#/components/schemas/ReportedValue' }, { type: 'null' }] }
+        u_mass: { oneOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }] }
+        rel_u: { oneOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }] }
+        verdict: { $ref: '#/components/schemas/Verdict' }
+        recorded_at: { type: [string, 'null'], format: date-time }
+        recorded_by_name: { type: [string, 'null'] }
+        superseded: { type: boolean }
+        supersedes_component_id: { type: [string, 'null'] }
+        reweigh_reason: { type: [string, 'null'] }
+        is_pre_dilution_solution: { type: boolean }
+    WeighingInput:
+      type: object
+      required: [instrument_id, dosing_unit, amount]
+      properties:
+        instrument_id: { type: string }
+        dosing_unit: { type: string, enum: [mass, volume, drop] }
+        amount:
+          type: object
+          required: [value, unit]
+          properties:
+            value: { $ref: '#/components/schemas/DecimalString' }
+            unit: { type: string, enum: [g, mL, drop] }
+    PreDilutionInput:
+      type: object
+      required: [diluent_lot_id, dilution_pct]
+      properties:
+        diluent_lot_id: { type: string }
+        dilution_pct:
+          $ref: '#/components/schemas/DecimalString'
+        note: { type: [string, 'null'], maxLength: 1000 }
+    BatchSummary:
+      type: object
+      required: [batch_id, formula_id, formula_name, formula_version, state, created_at]
+      properties:
+        batch_id: { type: string }
+        batch_code: { type: string }
+        formula_id: { type: string }
+        formula_name: { type: string }
+        formula_version: { type: integer }
+        state: { type: string, enum: [in_progress, blocked, complete] }
+        created_at: { type: string, format: date-time }
+        rows_total: { type: integer, minimum: 0 }
+        rows_recorded: { type: integer, minimum: 0 }
+    Batch:
+      allOf:
+        - $ref: '#/components/schemas/BatchSummary'
+        - type: object
+          required: [target_mass, components, next_step_locked, lock_reasons, per_item_balance_supported, release_status]
+          properties:
+            target_mass: { $ref: '#/components/schemas/Quantity' }
+            components:
+              type: array
+              items: { $ref: '#/components/schemas/BatchComponent' }
+            next_step_locked: { type: boolean }
+            lock_reasons:
+              type: array
+              items:
+                type: object
+                required: [code, component_id]
+                properties:
+                  code: { type: string, examples: [weighing_block] }
+                  component_id: { type: string }
+            per_item_balance_supported:
+              type: boolean
+              description: false until PDC-148 is merged — show the "balance per batch, may be inaccurate" banner (X3 §0 rule 1)
+            release_status: { type: string, enum: [pre_release, checklist_passed, released, blocked] }
+    MixingSheetLine:
+      type: object
+      required: [component_id, material_label, lot_code, dosing_unit, mass_target]
+      properties:
+        component_id: { type: string }
+        material_label: { type: string }
+        lot_code: { type: string }
+        dosing_unit: { type: string, enum: [mass, volume, drop] }
+        mass_target: { $ref: '#/components/schemas/Quantity' }
+        volume_target: { oneOf: [{ $ref: '#/components/schemas/ValueOrMissing' }, { type: 'null' }], description: Via density with uncertainty (J15 3b) }
+        drops_target: { oneOf: [{ $ref: '#/components/schemas/ValueOrMissing' }, { type: 'null' }], description: needs_calibration when no dropper calibration (J15 3c/3d) }
+    MixingSheet:
+      type: object
+      required: [batch_id, lines, rel_u_summary]
+      properties:
+        batch_id: { type: string }
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/MixingSheetLine' }
+        rel_u_summary:
+          type: object
+          required: [ok, warn, block, not_weighed]
+          properties:
+            ok: { type: integer, minimum: 0 }
+            warn: { type: integer, minimum: 0 }
+            block: { type: integer, minimum: 0 }
+            not_weighed: { type: integer, minimum: 0 }
+    LabelLayout:
+      type: object
+      required: [layout_id, label, page, cols, rows]
+      properties:
+        layout_id: { type: string }
+        label: { type: string }
+        page: { type: string, enum: [A4] }
+        cols: { type: integer, minimum: 1 }
+        rows: { type: integer, minimum: 1 }
+
+    # ── compliance ──
+    ComplianceStatus:
+      type: string
+      enum: [pass, exceed, no_limit_defined, data_missing, not_applicable, inconclusive_ci_straddle]
+      description: '00 §7.3. inconclusive_ci_straddle is its own visual state — never looks like pass or exceed (R2 §0 rule 3).'
+    Citation:
+      type: object
+      required: [document_id, locator, source_excerpt, rule_tier, rule_review_status, rule_credential_class]
+      properties:
+        document_id: { type: string }
+        locator: { type: string }
+        source_excerpt: { type: string, description: Plain text only — never render as HTML }
+        rule_tier: { $ref: '#/components/schemas/Tier' }
+        rule_review_status: { type: string }
+        rule_credential_class: { type: string, enum: [class_I, class_II, class_III, ineligible] }
+    Finding:
+      type: object
+      required: [finding_id, substance_label, rule_id, status, citation_complete]
+      properties:
+        finding_id: { type: string }
+        substance_label: { type: string }
+        source_material_label: { type: [string, 'null'] }
+        rule_id: { type: string }
+        status: { $ref: '#/components/schemas/ComplianceStatus' }
+        severity: { type: [string, 'null'] }
+        used_pct: { oneOf: [{ $ref: '#/components/schemas/ValueOrMissing' }, { type: 'null' }] }
+        limit_pct: { oneOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }] }
+        basis: { type: [string, 'null'] }
+        citation: { oneOf: [{ $ref: '#/components/schemas/Citation' }, { type: 'null' }] }
+        citation_complete: { type: boolean, description: false → show data_missing, block export (R2 §0 rule 5) }
+        next_action_key: { type: [string, 'null'], description: 'e.g. "confirm by measurement" for inconclusive' }
+    FindingGroup:
+      type: object
+      required: [group_key, findings]
+      properties:
+        group_key:
+          type: string
+          enum: [ifra, annex_ii, annex_iii_vi, allergens, th_cosmetic_act, acd_annex, us_rules, cites_abs]
+        findings:
+          type: array
+          items: { $ref: '#/components/schemas/Finding' }
+    ComplianceReport:
+      type: object
+      description: No overall "compliant" field on purpose — every jurisdiction block is always shown (R2 S1).
+      required: [formula_id, formula_version, disclaimer, hard_block, jurisdictions, other_checks, evaluated_at]
+      properties:
+        formula_id: { type: string }
+        formula_version: { type: integer }
+        product_category: { oneOf: [{ $ref: '#/components/schemas/ProductCategory' }, { type: 'null' }] }
+        disclaimer:
+          type: object
+          description: From the database, shown on every compliance screen (R2 §0 rule 4)
+          required: [text, source_ref]
+          properties:
+            text: { type: string }
+            source_ref: { type: string }
+        hard_block:
+          type: [object, 'null']
+          description: Non-null replaces the whole panel (R2 S1a) — no skip/close/acknowledge button exists
+          required: [substances]
+          properties:
+            substances:
+              type: array
+              items:
+                type: object
+                required: [substance_label, rule_id, citation]
+                properties:
+                  substance_label: { type: string }
+                  source_material_label: { type: [string, 'null'] }
+                  rule_id: { type: string }
+                  citation: { $ref: '#/components/schemas/Citation' }
+        jurisdictions:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: object
+            required: [jurisdiction, rules_bound, groups]
+            properties:
+              jurisdiction: { type: string, enum: [EU, TH, ASEAN, US] }
+              rules_bound: { type: boolean, description: false → "no rules bound yet" (not a pass) }
+              groups:
+                type: array
+                items: { $ref: '#/components/schemas/FindingGroup' }
+        other_checks:
+          type: array
+          items: { $ref: '#/components/schemas/FindingGroup' }
+        evaluated_at: { type: string, format: date-time }
+    DocType:
+      type: string
+      enum: [COA, SDS, TDS, IFRA_CoC, allergen_declaration, GCMS, chiral_GC, calibration_certificate, other]
+      description: MVP upload subset of 00 §5.3 doc_type. COA/GCMS/chiral_GC → lot only; SDS/TDS/IFRA_CoC/allergen_declaration → SKU only.
+    Document:
+      type: object
+      required: [document_id, doc_type, title, applies_to_type, applies_to_id, processing_status, parse_status, uploaded_at, is_current]
+      properties:
+        document_id: { type: string }
+        doc_type: { $ref: '#/components/schemas/DocType' }
+        title: { type: string }
+        issuer: { type: [string, 'null'] }
+        issue_date: { type: [string, 'null'], format: date }
+        revision: { type: [string, 'null'] }
+        applies_to_type: { type: string, enum: [sku, lot] }
+        applies_to_id: { type: string }
+        processing_status: { type: string, enum: [queued, scanning, parsing, done, rejected] }
+        rejection_code: { type: [string, 'null'], enum: [upload.unsupported_type, upload.too_large, upload.scan_failed, upload.wrong_subject, null] }
+        parse_status: { type: string, enum: [unparsed, auto, human_verified] }
+        supersedes_document_id: { type: [string, 'null'] }
+        superseded_at: { type: [string, 'null'], format: date-time }
+        is_current: { type: boolean }
+        uploaded_at: { type: string, format: date-time }
+        license_tag: { type: [string, 'null'] }
+    DocumentCompleteness:
+      type: object
+      required: [subject_type, subject_id, subject_label, total_score, components, gating_flags, computed_at]
+      properties:
+        subject_type: { type: string, enum: [sku, lot] }
+        subject_id: { type: string }
+        subject_label: { type: string }
+        total_score: { $ref: '#/components/schemas/Quantity' }
+        components:
+          type: array
+          items:
+            type: object
+            required: [doc_type, present, applicable, weight, contributed]
+            properties:
+              doc_type: { $ref: '#/components/schemas/DocType' }
+              present: { type: boolean }
+              applicable: { type: boolean }
+              weight: { $ref: '#/components/schemas/Quantity' }
+              contributed: { $ref: '#/components/schemas/Quantity' }
+        gating_flags:
+          type: array
+          items: { type: string }
+        computed_at: { type: string, format: date-time }
+    CompletenessRow:
+      type: object
+      required: [subject_type, subject_id, subject_label, total_score, missing_doc_types]
+      properties:
+        subject_type: { type: string, enum: [sku, lot] }
+        subject_id: { type: string }
+        subject_label: { type: string }
+        total_score: { $ref: '#/components/schemas/Quantity' }
+        missing_doc_types:
+          type: array
+          items: { $ref: '#/components/schemas/DocType' }
+
+    # ── shared ──
+    PageMeta:
+      type: object
+      required: [page, page_size, total]
+      properties:
+        page: { type: integer, minimum: 1 }
+        page_size: { type: integer, minimum: 1 }
+        total: { type: integer, minimum: 0 }

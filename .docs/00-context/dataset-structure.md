@@ -8,6 +8,14 @@ that folder).
 Received as a sample of **10 substances**, presented as the format the full ~100-material set
 follows.
 
+**Scope update, 2026-10-04:** the owner-selected MVP now also includes formula versioning,
+laboratory batches/weighing and a typed document vault (see `../02-design/mvp-scope.md`). This
+does not add fields to the supplied sample or validate its models. Instrument calibration,
+measurement tolerances, SKU/lot records, approved uncertainty/tier rules and interaction/group
+definitions must come from separately approved operational/domain sources. Upstream synthetic
+fixtures are not those sources. Supplier-document workflows are now in scope; statements below
+about no PDF consumption refer to the earlier view-only cycle, superseded by this update.
+
 ## 1. Substance table (`top10_complete_substances_raw.csv`)
 
 34 columns per substance, in eight groups:
@@ -40,8 +48,9 @@ safety data sheets, certificates of analysis, IFRA certificates, allergen declar
 sheets, and compliance statements (Halal, vegan, non-animal-testing, Prop 65, Canada DSL).
 
 Implication for design: supplier documents attach to a **substance-supplier pair**, not to a
-substance alone. Nothing in the current build cycle consumes these PDFs; they are recorded here
-so the model is not designed in a way that makes them impossible to add later.
+substance alone. The current MVP's document vault consumes authorized typed documents and
+processing metadata; storage, scanning, rights and completeness semantics must follow the current
+design and rules. A supplier statement is not automatically a personal religion preference.
 
 ## 4. What this does and does not settle
 
