@@ -423,6 +423,15 @@ detection threshold where odour-unit weighting is used). The chart must state wh
 applies, since mass percentage and odour-unit weighting give visibly different results from the
 same data.
 
+The weighting is chosen by the user, not by the system. The view carries a toggle between the
+weightings the engine registers, and the engine serves exactly the one requested. It never
+substitutes another weighting, because two charts drawn with different arithmetic must not look
+alike.
+
+Both charts on the formula view are adjustable in place, without a page reload (NFR-002): the
+evaporation curve by its time scale and temperature (FR-010), and the odour chart by its value
+axis and by how much of the long tail it shows before collapsing the rest into one group.
+
 **Precondition:**
 Odour type data exists for the materials in the formula.
 
@@ -431,9 +440,18 @@ Odour type data exists for the materials in the formula.
   each odour type's share, and the weighting basis is stated on the chart.
 - Given a material with no odour type in the dataset, then it is reported as `insufficient data`
   and is not silently assigned to a family (rule.md rule 59; CER-002).
+- Given the user selects a weighting, when the chart is drawn, then the engine applies that
+  weighting and the chart names it, and no other weighting is substituted.
+- Given a weighting whose inputs are missing for some materials, when the chart is drawn, then
+  those materials are listed under the family they belong to, are not counted in the bar height,
+  and the bar states how many of its family's materials the height was built from.
+- Given the user changes the value-axis scale, the time scale, or the weighting, then the view
+  updates without a page reload and without discarding any what-if edit currently applied.
 
 **Traceability:** Team scope decision 2026-09-10 (MVP formula view). Not evidenced by the
-2026-09-02 interview — flagged for honesty about sourcing. Design: `data-model.md` §3.
+2026-09-02 interview — flagged for honesty about sourcing. Weighting toggle, partial-data display
+and chart adjustability added by team decision 2026-10-04. Design: `data-model.md` §3,
+`calculation-engine.md` §4 and §6.
 
 ---
 
