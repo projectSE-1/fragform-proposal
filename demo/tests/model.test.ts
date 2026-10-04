@@ -1,7 +1,7 @@
 // AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {appendVersion, can, initialFormulas, roles} from '../lib/model.ts';
+import {appendVersion, initialFormulas} from '../lib/model.ts';
 import {validateDemoDeclaration} from '../lib/formula-validation.ts';
 const declaration = (amounts:string[])=>amounts.map((amount,i)=>({id:`row-${i}`,materialId:`DEMO-M0${i+1}`,amount}));
 test('exact decimal declarations never normalise or round an invalid total',()=>{
@@ -24,13 +24,4 @@ test('a new version preserves historical values and owns its ingredient objects'
   draft.ingredients[0].amount='20';
   assert.equal(next.versions.at(-1)!.ingredients[0].amount,'35.5000');
   assert.equal(formula.versions.at(-1)!.ingredients[0].amount,'40');
-});
-test('demo action mapping preserves pending and administrator lab boundaries',()=>{
-  for(const action of ['read','formula.write','lab.write','document.write','admin'] as const)assert.equal(can('pending',action),false);
-  for(const role of roles)assert.equal(can(role,'read'),true);
-  for(const role of roles)assert.equal(can(role,'lab.write'),role==='formulator');
-  assert.equal(can('org_admin','formula.write'),true);
-  assert.equal(can('data_curator','document.write'),true);
-  assert.equal(can('safety_assessor','formula.write'),false);
-  assert.equal(can('approver','admin'),false);
 });

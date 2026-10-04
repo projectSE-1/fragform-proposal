@@ -1,8 +1,7 @@
 // AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted.
 // All records in this module are invented, public-safe fixtures. No scientific rules are encoded.
-export const roles = ['formulator', 'data_curator', 'safety_assessor', 'legal_reviewer', 'approver', 'org_admin', 'system_admin'] as const;
-export type Role = typeof roles[number] | 'pending';
-export type Page = 'dashboard' | 'formulas' | 'editor' | 'lab' | 'compliance' | 'references' | 'account' | 'admin' | 'tutorial' | 'public' | 'auth';
+// Roles, accounts and the laboratory workflow are out of this build (scope-lock.md).
+export type Page = 'formulas' | 'editor';
 export type Ingredient = { id: string; materialId: string; amount: string };
 export type FormulaVersion = {
   id: string; number: number; createdLabel: string; note: string;
@@ -33,14 +32,6 @@ export function initialFormulas(): Formula[] {
     {id:'formula-2', name:'Quiet Woods', code:'F-002', updatedLabel:'Yesterday', versions:[version('w1',1,'First synthetic study')]},
     {id:'formula-3', name:'Petal No. 04', code:'F-003', updatedLabel:'02 Oct', versions:[version('p1',1,'First synthetic study'),version('p2',2,'Second synthetic study')]},
   ];
-}
-export function can(role:Role, action:'read'|'formula.write'|'lab.write'|'document.write'|'admin'): boolean {
-  if (role === 'pending') return false;
-  if (action === 'read') return true;
-  if (action === 'formula.write') return ['formulator','org_admin','system_admin'].includes(role);
-  if (action === 'lab.write') return role === 'formulator';
-  if (action === 'document.write') return ['formulator','data_curator','org_admin','system_admin'].includes(role);
-  return ['org_admin','system_admin'].includes(role);
 }
 export function validateIngredients(items:Ingredient[]): string | null {
   if (!items.length) return 'Add at least one demo material.';
