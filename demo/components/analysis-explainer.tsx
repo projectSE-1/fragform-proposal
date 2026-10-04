@@ -5,7 +5,7 @@ import {Icon} from './ui';
 import './analysis-explainer.css';
 
 type Copy = {en:string;th:string};
-type Topic = 'overview'|'profile'|'evolution'|'error-budget'|'provenance'|'interactions';
+type Topic = 'overview'|'profile'|'evolution'|'error-budget'|'provenance';
 const explanations:Record<Topic,{purpose:Copy;benefit:Copy;demo:Copy;try:Copy}>={
   overview:{
     purpose:{en:'Read a scent profile, its change over time and the evidence behind an analysis.',th:'ดูภาพรวมหมวดกลิ่น การเปลี่ยนแปลงตามเวลา และข้อมูลอ้างอิงของผลวิเคราะห์'},
@@ -37,18 +37,12 @@ const explanations:Record<Topic,{purpose:Copy;benefit:Copy;demo:Copy;try:Copy}>=
     demo:{en:'The list contains a demo formula snapshot, screen-fixture IDs and named missing inputs. Fixture IDs do not validate a scientific result.',th:'รายการนี้แสดงสูตรจำลอง รหัสตัวอย่างหน้าจอ และข้อมูลที่ยังขาด รหัสตัวอย่างไม่ได้ยืนยันผลทางวิทยาศาสตร์'},
     try:{en:'Switch List view / Tree view and identify the input snapshot and missing model evidence.',th:'สลับมุมมองรายการและต้นไม้ แล้วชี้ให้เห็นข้อมูลสูตรและหลักฐานโมเดลที่ยังขาด'},
   },
-  interactions:{
-    purpose:{en:'Explain categories for sourced synergy, masking and material-group checks.',th:'อธิบายหมวดตรวจคู่เสริมกลิ่น คู่กลบกลิ่น และกลุ่มวัตถุดิบเมื่อมีกฎอ้างอิง'},
-    benefit:{en:'A rule-backed check would explain relevant relationships for a perfumer to review when adjusting a formula.',th:'เมื่อมีกฎรองรับ จะช่วยอธิบายความสัมพันธ์ที่นักปรุงควรพิจารณาตอนปรับสูตร'},
-    demo:{en:'Fixed pairs and the mock report are independent of the selected formula. Findings are a presentation script, not calculated synergy, masking or group verdicts.',th:'คู่ตัวอย่างและรายงาน Mock คงที่ แยกจากสูตรที่เลือก ผลเป็นบทสาธิตสำหรับพรีเซนต์ ไม่ใช่การคำนวณว่าเสริม กลบ หรือเข้าเงื่อนไขกลุ่มจริง'},
-    try:{en:'Read the three mock findings, then open their basis to distinguish a UI script from scientific evidence.',th:'อ่านผลจำลองทั้งสามข้อ แล้วเปิดที่มาเพื่อแยกข้อมูลสาธิตหน้าจอออกจากหลักฐานวิทยาศาสตร์'},
-  },
 };
 
 export function AnalysisExplainer({topic}:{topic:Topic}){
   const {t}=useDemo();
   const copy=explanations[topic];
-  const names:Record<Topic,Copy>={overview:{en:'analysis overview',th:'ภาพรวมการวิเคราะห์'},profile:{en:'sample scent profiles',th:'ตัวอย่างโปรไฟล์กลิ่น'},evolution:{en:'time-evolution samples',th:'กราฟตามเวลาตัวอย่าง'},'error-budget':{en:'uncertainty',th:'ความไม่แน่นอน'},provenance:{en:'source evidence',th:'ที่มาของข้อมูล'},interactions:{en:'interaction samples',th:'ตัวอย่างปฏิสัมพันธ์'}};
+  const names:Record<Topic,Copy>={overview:{en:'analysis overview',th:'ภาพรวมการวิเคราะห์'},profile:{en:'sample scent profiles',th:'ตัวอย่างโปรไฟล์กลิ่น'},evolution:{en:'time-evolution samples',th:'กราฟตามเวลาตัวอย่าง'},'error-budget':{en:'uncertainty',th:'ความไม่แน่นอน'},provenance:{en:'source evidence',th:'ที่มาของข้อมูล'}};
   return <details className="analysis-explainer" key={topic}>
     <summary aria-label={t(`Explain ${names[topic].en}`,`อธิบาย${names[topic].th}`)}><span className="analysis-explainer-label"><Icon name="info" size={17}/>{t('Explain this section','ส่วนนี้ใช้ทำอะไร')}<span className="analysis-explainer-hint">{t('Presentation notes','คำอธิบายสำหรับพรีเซนต์')}</span></span><Icon name="down" size={16}/></summary>
     <dl>

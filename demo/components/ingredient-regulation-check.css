@@ -1,0 +1,53 @@
+/* AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted. */
+dialog.modal:has(.ingredient-regulation-details){width:min(760px,calc(100% - 32px))}
+.ingredient-regulation-trigger{display:flex;flex-direction:column;gap:5px;align-items:flex-start;background:var(--surface-alt);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-top:9px;min-height:44px;color:var(--purple-dark);max-width:245px;font-size:11px;text-align:left}
+.ingredient-regulation-trigger:hover{background:var(--purple-soft);border-color:var(--control-border)}
+.ingredient-regulation-trigger:active{background:var(--subtle)}
+.ingredient-regulation-trigger>span:first-child{display:flex;align-items:center;gap:6px;font-weight:600}
+.ingredient-regulation-mock-label{font-size:9px;letter-spacing:.4px;border-radius:4px;padding:2px 4px;background:var(--purple-soft)}
+.ingredient-regulation-mini-results{display:flex;flex-direction:column;gap:4px;line-height:1.5}
+.ingredient-regulation-status{display:flex;gap:5px;align-items:center;font-size:11px}
+.ingredient-regulation-status.status-red{color:var(--red)}
+.ingredient-regulation-status.status-green{color:var(--green)}
+.ingredient-regulation-status.status-amber{color:var(--amber)}
+.ingredient-regulation-waiting{color:var(--muted);font-size:10px}
+.ingredient-regulation-details{display:grid;gap:18px}
+.ingredient-regulation-preview-controls{display:flex;gap:8px;flex-wrap:wrap}
+.ingredient-regulation-preview-controls>.button{min-height:44px;font-size:12px;flex:1}
+.ingredient-regulation-preview-note{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin:0;background:var(--surface-alt);padding:12px;border:1px solid var(--line);border-radius:9px}
+.ingredient-regulation-preview-note>span:last-child{flex:1;min-width:180px;font-size:13px;line-height:1.7;color:var(--muted)}
+.ingredient-regulation-details .notice{font-size:13px;line-height:1.75}
+.ingredient-regulation-pending{padding:20px 16px;border:1px solid var(--line);background:var(--surface-alt);border-radius:12px}
+.ingredient-regulation-pending>svg{color:var(--purple-dark);margin-bottom:10px}
+.ingredient-regulation-pending h3{font-size:16px}
+.ingredient-regulation-pending p{font-size:14px;line-height:1.75;margin:0;color:var(--muted)}
+.ingredient-regulation-input{background:var(--surface-alt);border:1px solid var(--line);border-radius:12px;padding:16px}
+.ingredient-regulation-input h3{font-size:15px;margin-bottom:8px}
+.ingredient-regulation-input>p{font-size:12px;color:var(--purple-dark);margin-bottom:12px}
+.ingredient-regulation-input>span{display:block;font-size:12px;line-height:1.7;color:var(--muted);margin-top:12px}
+.ingredient-regulation-details dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:7px 12px;font-size:13px;line-height:1.7;margin:0}
+.ingredient-regulation-details dt{color:var(--muted)}
+.ingredient-regulation-details dd{margin:0;overflow-wrap:anywhere}
+.ingredient-regulation-assessments{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ingredient-regulation-assessment{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.ingredient-regulation-assessment.assessment-red{border-left:4px solid var(--red)}
+.ingredient-regulation-assessment.assessment-green{border-left:4px solid var(--green)}
+.ingredient-regulation-assessment.assessment-amber{border-left:4px solid var(--amber)}
+.ingredient-regulation-assessment-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:13px}
+.ingredient-regulation-assessment-heading h3{font-size:14px;margin:0}
+.ingredient-regulation-assessment p{font-size:13px;line-height:1.75;margin-bottom:14px}
+.ingredient-regulation-comparison{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--surface-alt);border-radius:8px;padding:10px 12px}
+.ingredient-regulation-comparison strong{overflow-wrap:anywhere}
+.ingredient-regulation-comparison>strong{font-size:18px;font-variant-numeric:tabular-nums}
+.ingredient-regulation-official{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding-top:14px;border-top:1px solid var(--line)}
+.ingredient-regulation-reading>summary{display:flex;justify-content:space-between;align-items:center;gap:10px;list-style:none;cursor:pointer;min-height:44px;font-size:13px;font-weight:600;color:var(--purple-dark)}
+.ingredient-regulation-reading>summary::-webkit-details-marker{display:none}
+.ingredient-regulation-reading[open]>summary>svg{transform:rotate(180deg)}
+.ingredient-regulation-reading>p{font-size:12px;line-height:1.75;margin:5px 0;color:var(--muted)}
+.ingredient-regulation-reading>a{display:flex;gap:8px;align-items:center;min-height:44px;font-size:13px}
+.ingredient-regulation-strip{display:flex;align-items:flex-start;gap:9px;padding:12px 20px;background:var(--surface-alt);border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.7}
+.ingredient-regulation-strip>svg{margin-top:2px;color:var(--purple-dark)}
+.ingredient-regulation-strip>span{min-width:0}
+.ingredient-regulation-strip strong{color:var(--purple-dark)}
+@media(max-width:650px){.ingredient-regulation-assessments{grid-template-columns:1fr}}
+@media(max-width:520px){.ingredient-regulation-trigger{padding:8px 9px;max-width:200px}.ingredient-regulation-details dl{grid-template-columns:1fr;gap:2px}.ingredient-regulation-details dd{margin-bottom:8px}.ingredient-regulation-assessment,.ingredient-regulation-input{padding:13px}.ingredient-regulation-strip{padding:12px 15px}}

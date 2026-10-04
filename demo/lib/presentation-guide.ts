@@ -38,8 +38,8 @@ export const presentationGuides:Record<Page,PresentationGuide> = {
     title:['Formula workspace','พื้นที่สูตร'],
     purpose:['Record composition and context, keep versions, and inspect analysis evidence.','ระบุส่วนประกอบและบริบท เก็บเวอร์ชัน และตรวจหลักฐานการวิเคราะห์'],
     benefit:['Makes a trial separate from the saved formula, so earlier versions remain traceable.','แยกการทดลองออกจากสูตรที่บันทึก ทำให้ย้อนดูเวอร์ชันเดิมได้'],
-    steps:[['With Formulator, adjust two percentages to keep a 100% total, then save a version with a note.','ใช้ Formulator ปรับสองสัดส่วนให้ยอดรวมยังเป็น 100% แล้วบันทึกเวอร์ชันพร้อมหมายเหตุ'],['Start a what-if to demonstrate a separate, temporary trial.','เริ่ม What-if เพื่อสาธิตการทดลองชั่วคราวที่แยกจากสูตรที่บันทึก'],['Choose Evaluate and show the missing-data explanation and source evidence.','เลือกประเมินผลแล้วแสดงเหตุผลที่ข้อมูลไม่เพียงพอและหลักฐานอ้างอิง']],
-    boundary:['Sample profiles, time curves and interaction cards are layout examples. No chemistry model or interaction rule is implemented.','ตัวอย่างโปรไฟล์ กราฟเวลา และการ์ดปฏิสัมพันธ์เป็นตัวอย่างหน้าจอ ยังไม่มีโมเดลเคมีหรือกฎปฏิสัมพันธ์ที่ทำงานจริง'],
+    steps:[['Open FDA / IFRA beneath an ingredient and switch between Pass example and Exceed example.','เปิด อย. / IFRA ใต้ชื่อวัตถุดิบ แล้วสลับตัวอย่างผ่าน / ตัวอย่างเกินเกณฑ์'],['Choose Evaluate to inspect Current input, compare the finished-product sample with invented caps, and inspect missing data.','กดประเมินผลเพื่อดูผลตามสูตร เทียบค่าตัวอย่างในผลิตภัณฑ์สำเร็จกับเกณฑ์สมมติ และดูรายการที่ขาดข้อมูล'],['Try new amounts with a 100% total, evaluate again, and save a version with a note if desired.','ลองปรับสัดส่วนให้รวม 100% ประเมินใหม่ และบันทึกเวอร์ชันพร้อมหมายเหตุได้']],
+    boundary:['Profiles and curves are chart samples. Ingredient checks use invented bounds, not actual Thai FDA / IFRA rules. Real scientific and regulatory results remain insufficient data.','โปรไฟล์และกราฟเป็นตัวอย่างหน้าจอ การตรวจวัตถุดิบใช้เกณฑ์สมมติ ไม่ใช่กฎจริงของ อย. / IFRA ผลวิทยาศาสตร์และข้อกำหนดจริงยังเป็นข้อมูลไม่เพียงพอ'],
   },
   lab:{
     title:['Lab workspace','พื้นที่แล็บ'],
@@ -50,9 +50,9 @@ export const presentationGuides:Record<Page,PresentationGuide> = {
   },
   compliance:{
     title:['Compliance & documents','ข้อกำหนดและเอกสาร'],
-    purpose:['Explain Thai FDA / ASEAN and IFRA, review missing evidence, and organise source documents.','อธิบาย อย. / ASEAN และ IFRA ตรวจหลักฐานที่ขาด และจัดเอกสารต้นทาง'],
+    purpose:['Review missing evidence and organise source documents by their material subjects.','ตรวจหลักฐานที่ขาด และจัดเอกสารต้นทางตามวัตถุดิบที่อ้างถึง'],
     benefit:['Makes missing documents visible before a scientific or compliance conclusion is claimed.','ช่วยเห็นเอกสารที่ขาด ก่อนอ้างผลทางวิทยาศาสตร์หรือการผ่านข้อกำหนด'],
-    steps:[['Compare regulatory sources with IFRA industry standards, then show the missing-source findings.','แยกแหล่งข้อกฎหมายกับมาตรฐาน IFRA แล้วแสดงผลที่ยังขาดหลักฐาน'],['Open the document vault and inspect document types and subjects.','เปิดคลังเอกสารเพื่อดูประเภทเอกสารและรายการที่อ้างถึง'],['With a permitted persona, choose the IFRA document type in the simulated upload.','ใช้บทบาทที่มีสิทธิ์เลือกประเภทเอกสาร IFRA ในการเพิ่มเอกสารจำลอง']],
+    steps:[['Show the separate jurisdictions and their missing-source findings.','แสดงผลแยกแต่ละเขตอำนาจและหลักฐานที่ยังขาด'],['Open the document vault and inspect document types and subjects.','เปิดคลังเอกสารเพื่อดูประเภทเอกสารและรายการที่อ้างถึง'],['With a permitted persona, try the simulated document processing.','ใช้บทบาทที่มีสิทธิ์ลองสถานะประมวลผลเอกสารจำลอง']],
     boundary:['No file bytes are uploaded or scanned, and no safety or legal compliance is certified.','ไม่มีการอัปโหลดหรือสแกนไฟล์จริง และไม่ได้รับรองความปลอดภัยหรือการผ่านข้อกฎหมาย'],
   },
   references:{
