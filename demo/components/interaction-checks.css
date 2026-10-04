@@ -25,5 +25,27 @@
 .interaction-example-details dd{margin:0 0 8px;overflow-wrap:anywhere}
 .interaction-example-details code{font-size:10px;color:var(--ink)}
 .interaction-preview-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:18px;padding-top:14px;color:var(--muted);font-size:11px}
+.interaction-mock-report{margin-top:22px;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface-alt)}
+.interaction-mock-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.interaction-mock-heading h3{font-size:16px;line-height:1.5;margin:0 0 3px}
+.interaction-mock-heading p{font-size:13px;line-height:1.6;margin:0;color:var(--muted)}
+.interaction-mock-heading>.badge{margin-left:auto}
+.interaction-mock-boundary{font-size:13px;line-height:1.75;color:var(--muted);margin:16px 0}
+.interaction-mock-findings{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.interaction-mock-findings li{display:flex;gap:12px;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);min-width:0}
+.interaction-mock-finding-icon{color:var(--purple-dark);padding-top:2px}
+.interaction-mock-findings li>div{min-width:0}
+.interaction-mock-findings h4{font-size:14px;line-height:1.6;margin:0 0 5px}
+.interaction-mock-findings p{font-size:14px;line-height:1.7;margin:0 0 5px}
+.interaction-mock-findings p.interaction-mock-explanation{font-size:13px;color:var(--muted)}
+.interaction-mock-reference{display:block;font-size:11px;line-height:1.7;color:var(--muted);overflow-wrap:anywhere}
+.interaction-mock-basis{margin-top:14px;border-top:1px solid var(--line)}
+.interaction-mock-basis>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;min-height:48px;font-size:13px;font-weight:600;color:var(--purple-dark)}
+.interaction-mock-basis>summary::-webkit-details-marker{display:none}
+.interaction-mock-basis[open]>summary>svg{transform:rotate(180deg)}
+.interaction-mock-basis dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px;font-size:13px;line-height:1.75;margin:0}
+.interaction-mock-basis dt{color:var(--muted)}
+.interaction-mock-basis dd{margin:0;overflow-wrap:anywhere}
+@media(max-width:520px){.interaction-mock-report{padding:14px}.interaction-mock-heading>div{flex:1;min-width:0}.interaction-mock-heading>.badge{margin-left:52px}.interaction-mock-findings li{padding:13px;gap:9px}.interaction-mock-basis dl{grid-template-columns:1fr;gap:3px}.interaction-mock-basis dd{margin-bottom:9px}}
 @media(max-width:900px){.interaction-preview-grid{grid-template-columns:1fr}.interaction-example{padding:15px}.interaction-example-members{flex-direction:row;flex-wrap:wrap;gap:10px 24px}.interaction-example-details dl{grid-template-columns:100px minmax(0,1fr);gap:8px}.interaction-example-details dd{margin:0}.interaction-example-label{margin-bottom:12px}}
 @media(max-width:520px){.interaction-preview-header{gap:10px}.interaction-preview-header>div{flex:1;min-width:0}.interaction-preview-header>.badge{margin-left:50px}.interaction-preview-note{font-size:11px}.interaction-example-members{flex-direction:column;gap:9px}.interaction-example-details dl{grid-template-columns:1fr;gap:3px}.interaction-example-details dd{margin-bottom:8px}}
