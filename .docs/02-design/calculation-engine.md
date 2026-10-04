@@ -1,314 +1,165 @@
-# Calculation Engine
+<!-- AI Perfumery Engine project documentation; ownership follows the owner's existing agreement. No new licence is granted. -->
+# Calculation Engine — MVP Analysis and Laboratory Evidence
 
-The engine behind the formula view: what it reads, what it returns, where it sits in the server,
-and which decisions are still open.
+**Updated:** 2026-10-04. The owner's revision adopts source frontend MVP waves 0–5, while retaining Go + Gin, PostgreSQL and sqlc + pgx. [mvp-scope.md](mvp-scope.md) supersedes the earlier four-output/view-only scope; [tech-stack.md](tech-stack.md), [data-model.md](data-model.md), [roles-permissions.md](roles-permissions.md) and [api-contract.md](api-contract.md) are the companion designs. No engine implementation, approved numerical model or validated predictions are created by this revision.
 
-Derived from the Calculation Engine design page
-(https://claude.ai/artifact/5j8UWYi94xz1YX371J72RB), which names this file as the repository
-document holding the ER and class diagrams, the per-calculation rules and the traceability notes.
-Where the two differ, this file governs (CLAUDE.md authority order); §10 lists the differences.
-Companion to `data-model.md` (schema) and `diagrams.md` D3 (architecture). Structure only — no
-dataset values appear here.
+Source: Honney's existing pure-engine/result design and dataset structure; frontend commit `aa572abaede14c11796a1551434858171eb37363`, `api/openapi.yaml`, R1/R2/J15/X3 wireframes and handoff. Source UI expectations are adopted; toy equations, fixture values, uncertainty tiers/defaults and upstream pending decisions are not evidence of validated chemistry. `rule.md` remains authoritative.
 
-Stack: Go + Gin, PostgreSQL via sqlc + pgx (`diagrams.md` D3).
+## 1. Outputs and current evidence
 
----
-
-## 1. What it produces
-
-Four outputs land on the formula view.
-
-| Output | Requirement | Status |
+| Output family | Local requirement | Design/readiness |
 |---|---|---|
-| **Proportions** — each material as a share of the concentrate and of the finished product | FR-004 | Ready, assuming quantities in grams (decision 1). The discrepancy flag waits on decision 8 |
-| **Restriction status** — within, near, over, or insufficient data, against a named regulation and version | FR-005 | Ready for restriction rows with a numeric limit. Rows without one (`prohibited`, `declarable`, `specification`, `listed`) wait on decision 10; which categories are checked waits on decision 6; the near state waits on decision 7 |
-| **Odour profile** — composition grouped by odour family | FR-009 | Blocked on decision 2 (weighting basis) |
-| **Evaporation curve** — predicted intensity per material over time | FR-010 | Blocked on decision 4 (model) |
+| Exact declared percentages, totals and batch targets | FR-004, FR-011, FR-012 | Server validation/arithmetic over reviewed decimal inputs; exact formula sum, no normalization |
+| Category/version/jurisdiction-aware findings and sourced blocks | FR-005, FR-014 | Independent compliance block; source rule semantics/coverage still need expert/legal review |
+| Odour/profile and time evolution, including Profile A/B | FR-009, FR-010, CER-005 | Interfaces only until model/profile definitions, conditions and source inputs are approved |
+| Real analysis-step state, seed and separate input/model changes | FR-006, CER-004 | Orchestration records actual progress/evidence; no pretend successful stages |
+| Quantified uncertainty, error budget and complete provenance | CER-001, CER-004, CER-005 | Report only supported intervals/tiers/sensitivities; otherwise a named missing state |
+| Laboratory mass/volume/drop bridge and weighing verdict | FR-012, FR-013 | Requires instrument/calibration/density evidence and approved uncertainty/tolerance policy |
+| Material-group/pair checks | FR-003, FR-005, CER-002 | Supplied dataset lacks authoritative group/pair rules; `insufficient data` |
 
-**Not designed: material groups and material-pair checks.** FR-003 shows each material's
-group(s), and FR-005 and CER-002 check material combinations. No output covers them: the supplied
-data has no material-group or pair-rule fields (`.docs/00-context/dataset-structure.md` §1; the
-odour type used by FR-009 is a separate field), and no table defines them (`data-model.md` §7,
-decision 11). Until decision 11 is made, these acceptance
-criteria are not met this cycle. Under CER-002 and rule.md rule 59, any pair check that is added
-must return `insufficient data` for a pair with no rule, never a guess.
+The frontend describes physical/perceptual modules and a result assembly sequence, not equations ready for Go implementation. A route or schema field for longevity/projection/sillage does not prove those quantities can currently be computed. Missing outputs must be visible rather than filled with demonstration predictions.
 
----
+## 2. Internal `Result[T]` and REST values
 
-## 2. The result contract: `Result[T]`
+Retain Honney's internal result envelope for every pure calculator:
 
-Two requirements settle the design before any equation does. Every value must carry the rule,
-threshold and source row that produced it (CER-001). Where the data does not cover a case, the
-answer is `insufficient data` — never a guess and never a silent omission (CER-002).
-
-Both fail if they are left to discipline, so they live in the return type of every calculator:
-
-| Field | Meaning |
+| Field | Contract |
 |---|---|
 | `Status` | `ok` or `insufficient_data` |
-| `Value` | The computed value. Empty when the status is `insufficient_data` |
-| `Citations` | Rule, threshold and source row used. Never empty when the status is `ok` |
-| `Missing` | The inputs that were absent. Filled only when the status is `insufficient_data` |
+| `Value` | Present only when the relevant value can be produced |
+| `Citations` | Exact input/source/rule/model/version references; never empty for a produced result |
+| `Missing` | Absent input/model/policy and safe reason; may link to provenance |
 
-Example:
+The snapshot/results additionally carry approved unit/conditions/method/uncertainty/tier/error-budget evidence when required. These may be typed metadata attached to `T`; adding metadata does not relax the no-guesses result contract.
 
-```
-Status     ok                          Status     insufficient_data
-Value      0.30 %                      Value      —
-Citations  IFRA 51st Amendment,        Missing    material_volatility.antoine_a
-           Category 4, limit 0.5 %     Citations  (none)
-```
+The Go API adapter distinguishes three presentation types from the source contract:
 
-- A number cannot reach the API without its sources attached.
-- "We don't know" has exactly one representation. It is never `0` and never an omitted value, and
-  it names the absent input.
-- The explanation panel (FR-006) reads the citations already attached to the result; it does not
-  run a second lookup. No separate explanation route is defined.
-
----
-
-## 3. Where the engine sits
-
-| Part | Does | I/O |
+| REST type | Use | Mandatory evidence |
 |---|---|---|
-| `EvaluationService` (in the Formula module) | Loads a `FormulaSnapshot` through the repositories (sqlc + pgx) and applies what-if overrides | The only I/O on the calculation path |
-| Engine | Computes every output from the snapshot | None: no database call, no socket, no clock |
+| `Quantity` | Exact/declared input or deterministic exact arithmetic on declared quantities | Unit and server `display_decimals`; trace to declaration/arithmetic source |
+| `ReportedValue` | Measurement or estimated real-world value | Supported interval/coverage level, approved tier, unit, display precision and provenance reference |
+| `MissingValue` | Cannot report a supported estimate | `unquantified`, `not_measured`, `no_data`, `out_of_scope` or `needs_calibration`, reason and optional evidence link |
 
-The engine is a pure, deterministic function over a loaded snapshot: the same input always gives
-the same output (CER-003). It calls no external AI or model service (NFR-004).
+Never convert a computed estimate to `Quantity` to avoid uncertainty. A measured mass is not exact simply because its decimal text is precise. An unsupported interval/tier cannot be synthesized to satisfy a schema: return `MissingValue` and name the missing policy/data. The source's T1–T6/confidence/applicability fields describe a proposed reporting policy; assigning them requires approved definitions and evidence. Missing is never zero, an invisible omission, pass or a generic error.
 
-A what-if edit (FR-007) sends overrides that `EvaluationService` applies to the snapshot in
-memory. The same engine then runs again, so the recalculated view cannot drift from the stored
-view, and the recalculation itself writes nothing. Whether a trial edit can later be saved is
-`backlog.md` Open Question 7.
+User-entered decimals remain strings through request validation, exact persistence and server numeric handling, preserving typed scale. The browser may format according to server display precision but cannot round business values, recompute totals/intervals/conversions/verdicts or draw an estimate without its required band. Large/exact numeric JSON serialization and Go decimal representation need a reviewed precision policy; no package is silently selected here.
 
-This placement follows the Calculation Engine page, as directed on 2026-09-29. `diagrams.md` D3
-follows it. The Backend Map page (https://claude.ai/artifact/JoF8PwkdQNxjJQZ3cLsjZk) still draws
-its gate chain as handler → engine → sqlc + pgx and needs the same change.
+## 3. Pure engine versus orchestration
+
+| Part | Responsibility | I/O |
+|---|---|---|
+| Go REST handlers/auth/permissions | Validate session/MFA/CSRF, action and record/tenant scope, stable errors | Server state/clock/logging |
+| `EvaluationService` | Load a tenant-authorized immutable formula/reference/rule snapshot; apply transient overrides; select explicit approved config/seed/model versions; manage runs/cache/progress | sqlc + pgx/repositories and access-event writer |
+| Pure Go engine | Compute supported results only from the supplied snapshot/config/seed | No database, network, files or wall-clock |
+| API/result persistence adapter | Store run/results/provenance and adapt result envelopes to REST values | Server persistence, outside engine |
+| Next.js | Render the contract, submit explicit input, show progress/results/errors | REST only; no official calculation |
+
+Same snapshot, explicit seed, configuration and model versions must reproduce the same output. Any clock-dependent choice is resolved before calling the engine and included in input; a random seed never originates implicitly inside a calculator. No external LLM/model service is needed for core formulation/calculation (CER-003, NFR-004).
+
+FR-007 overlays trial input in memory and runs the same engine. This creates no saved formula version. Saving is a separate explicit version-creation command, with authorization/validation/concurrency checks. Required calculation access events and optional run evidence persist outside the engine. The source analyze route accepts a saved formula/version, so the transient override request schema remains a gate in [api-contract.md](api-contract.md); do not claim that route already supports what-if.
+
+## 4. Dataflow and independent branches
 
 ```mermaid
-flowchart LR
-    REPO[(Repositories<br/>sqlc + pgx)] --> ES[EvaluationService]
-    WHATIF[What-if overrides<br/>FR-007 · in memory] --> ES
-    ES --> SNAP[FormulaSnapshot]
-    SNAP --> P
-
-    subgraph ENGINE["Engine — pure function · deterministic · no I/O"]
-        P[1 · ProportionCalculator<br/>pct_in_formula → pct_in_product → total check]
-        C[2a · ComplianceChecker<br/>FR-005]
-        O[2b · OdourProfiler<br/>FR-009]
-        E[2c · EvaporationCalculator<br/>FR-010]
-        OW[OdourWeighting<br/>interface · no implementation yet]
-        EM[EvaporationModel<br/>interface · no implementation yet]
-        P --> C
-        P --> O
-        P --> E
-        O --> OW
-        E --> EM
-    end
+flowchart TD
+    REQUEST[Authorized formula/version or reviewed trial input] --> SERVICE[EvaluationService]
+    REPO[(sqlc + pgx repositories)] --> SERVICE
+    SERVICE --> SNAP[Immutable snapshot + explicit conditions/config/seed/model versions]
+    SNAP --> VALIDATE[Pure scope / declaration / reference checks]
+    VALIDATE --> BASIS[Mass basis / dilution / approved composition expansion]
+    BASIS --> PHYSICS[Physics model interface]
+    PHYSICS --> PERCEPTION[Perception / Profile A and B interface]
+    PERCEPTION --> UNCERTAINTY[Approved uncertainty / error-budget interface]
+    BASIS --> COMPLIANCE[Independent versioned compliance checker]
+    UNCERTAINTY --> ASSEMBLE[Pure result assembly: supported values and named missing states]
+    COMPLIANCE --> ASSEMBLE
+    ASSEMBLE --> ADAPTER[Go persistence / REST adapter / access-event writer]
+    ADAPTER --> UI[Next.js value/error/provenance presentation]
 ```
 
----
+Scope accepts only the adopted MVP vehicle class (`hydroalcoholic`) and requires explicit application conditions. Unsupported vehicles stop before model execution with a named scope reason. The scope gate does not imply an approved physical model for every in-scope vehicle.
 
-## 4. Order of computation
+Within scope, missing/unquantified physics or perception does not stop an independent compliance check that has its own required evidence. Missing regulatory data likewise does not invalidate a supported physical result. Show each branch's actual status; no global all-compliant conclusion and no assembly step guessing a failed substep's value. The exact substeps correspond to models actually available, not fictitious progress copied from a mock.
 
-Proportions run first, always. Compliance compares a diluted percentage, the odour chart weights
-by concentration, and evaporation intensity is relative to concentration, so none of them can run
-on raw quantities. The pipeline is one sequential step followed by a fan-out.
+## 5. Formula validation, quantities and provenance
 
-Two branches end at an interface with nothing behind it yet. That is deliberate: the missing
-piece is a domain judgement, so filling it in later is a swap rather than a rewrite.
+Formula editing is w/w. The server sums exact declared decimal percentages and requires exactly 100% for a saved/analyzed formula. It returns the official total/difference when invalid; neither Next.js nor Go normalizes secretly. Reference/grade ambiguity is flagged. Nested formulas pin immutable versions and need approved expansion/recursion rules before execution.
 
-| Interface | Must provide | Blocked by |
-|---|---|---|
-| `OdourWeighting` | The weighting it applies, as a label shown on the chart, because mass percentage and odour units give visibly different charts from the same data | Decision 2 |
-| `EvaporationModel` | Its own equation and assumptions, retrievable per curve (FR-010), including surface area and airflow defaults that the dataset does not supply | Decision 4 |
+The established mass/dilution relationship remains:
 
-Compliance needs no interface; its open points are decisions 6, 7 and 10.
-
-### Class diagram
-
-Names only; method signatures are left to implementation.
-
-```mermaid
-classDiagram
-    class EvaluationService
-    class FormulaSnapshot
-    class ProportionCalculator
-    class ComplianceChecker
-    class OdourProfiler
-    class EvaporationCalculator
-    class OdourWeighting {
-        <<interface>>
-    }
-    class EvaporationModel {
-        <<interface>>
-    }
-    class Result~T~ {
-        Status status
-        T value
-        Citation[] citations
-        string[] missing
-    }
-    EvaluationService --> FormulaSnapshot : loads
-    ProportionCalculator ..> FormulaSnapshot : reads
-    ComplianceChecker ..> ProportionCalculator : uses pct_in_product
-    OdourProfiler ..> ProportionCalculator : uses proportions
-    EvaporationCalculator ..> ProportionCalculator : uses proportions
-    OdourProfiler --> OdourWeighting
-    EvaporationCalculator --> EvaporationModel
-    ProportionCalculator ..> Result~T~ : returns
-    ComplianceChecker ..> Result~T~ : returns
-    OdourProfiler ..> Result~T~ : returns
-    EvaporationCalculator ..> Result~T~ : returns
-```
-
----
-
-## 5. The data it reads
-
-Only the tables on the calculation path. Names follow `data-model.md`.
-
-| Table | Columns the engine uses | Notes |
-|---|---|---|
-| `formulas` | `id`, `org_id`, `product_category_id`, `concentrate_in_product_pct` | Tenant-scoped, with its items |
-| `formula_items` | `formula_id`, `material_id`, `quantity` | Grams assumed (decision 1) |
-| `materials` | `cas`, `name`, `mw_g_mol`, `nist_identified`, `nist_confidence`, `odor_type_id` | Provenance for CER-001 |
-| `material_volatility` | `psat_25c_pa`, `psat_32c_pa`, `antoine_a`, `antoine_b`, `antoine_c`, `antoine_form`, `antoine_tmin_k`, `antoine_tmax_k`, `hvap_25c_kj_mol`, `d_air_m2_s` | Optional row. The exact columns depend on decision 4 |
-| `material_odor_properties` | `odt`, `tenacity_hours`, `odor_strength` | Optional row |
-| `odor_types` | `name` | Groups materials by family (FR-009) |
-| `material_restrictions` | `category_id` (nullable), `regulation_version_id`, `restriction_type`, `max_concentration_pct`, `citation` | Fans out per product category |
-| `product_categories` | `code` | The formula's category is the join key |
-| `regulation_versions` | `source_id`, `label`, `effective_from`, `effective_to` | Picks the version in force |
-| `regulation_sources` | `code`, `name` | Names the regulation in every citation (FR-005) |
-
-- The volatility and odour rows are optional. Their absence is the ordinary source of
-  `insufficient data`, not an error.
-- Materials and regulatory tables carry no `org_id`; they are shared reference data.
-- Accounts, consent and the access log are outside the calculation path. Supplier documents exist
-  in the schema, but nothing in this cycle reads them.
-
-```mermaid
-erDiagram
-    formulas ||--|{ formula_items : contains
-    materials ||--o{ formula_items : "used in"
-    product_categories ||--o{ formulas : "declared by"
-    materials ||--o| material_volatility : "optional row"
-    materials ||--o| material_odor_properties : "optional row"
-    odor_types ||--o{ materials : groups
-    materials ||--o{ material_restrictions : "restricted by"
-    product_categories ||--o{ material_restrictions : "NULL = every category"
-    regulation_versions ||--o{ material_restrictions : "cited as"
-    regulation_sources ||--o{ regulation_versions : "has"
-```
-
----
-
-## 6. Per-calculation rules
-
-**Proportions (FR-004).** The dilution is applied exactly once and both figures are returned
-(`data-model.md` §5):
-
-```
-pct_in_formula = item.quantity / SUM(item.quantity) * 100
+```text
+pct_in_formula = item_mass / sum_item_mass * 100
 pct_in_product = pct_in_formula * concentrate_in_product_pct / 100
 ```
 
-Example: 2.00 % of the concentrate × 15 % concentrate in the finished product = 0.30 % of the
-product, which is within a 0.5 % limit. Skipping the dilution compares 2.00 % against 0.5 % and
-reports a false violation.
+For percentage-declared input, `pct_in_formula` is the validated declaration rather than an unnecessary normalization. Do not reinterpret product dilution/concentration class as a hidden default percentage. Apply finished-product dilution exactly once, show both bases, and account for approved SKU/carrier/pre-dilution expansion. Missing dilution/category leaves dependent compliance values missing; independent declared formula shares remain visible. Density absent from the supplied data blocks a volume-to-mass conversion rather than licensing an assumption.
 
-A missing input blanks exactly the values that depend on it. When `concentrate_in_product_pct` is
-not recorded, `pct_in_product` and the restriction status return `insufficient data` naming that
-input; `pct_in_formula` is still shown.
+Every result links to its actual immutable input/source/model/rule versions and conditions. Error-budget contributors link through all provenance nodes to observations/documents/locators; MVP simplifies graph drawing to a navigable list/tree only. It does not delete nodes, collapse different predictions into a generic graph or hide unsupported assumptions. Missing-value reasons have their own explanation path. No unapproved proxy/substitution is introduced automatically.
 
-**Restriction status (FR-005).** Match the formula's product category, compare `pct_in_product`
-against `max_concentration_pct`, and cite the regulation, version and threshold. A formula with no
-product category returns `insufficient data` naming it. The near band (decision 7) and rows
-without a numeric limit (decision 10) are undefined.
+## 6. Physics, profile and uncertainty gates
 
-**Odour profile (FR-009).** Group the formula's materials by `odor_types` and weight them through
-`OdourWeighting` (decision 2). A material with no odour type is reported as `insufficient data`,
-never assigned to a family.
+`PhysicsModel`, `PerceptionModel`, `OdourWeighting` and `UncertaintyPolicy` remain replaceable pure interfaces until approved definitions exist. Each must expose equation/version/conditions/applicability/assumptions/citations and its missing-data behavior. Profile A/B meanings, reported endpoints, odour-family weighting and any numeric mapping from categorical strength need domain decisions; mass share is not silently presented as perceptual strength.
 
-**Evaporation curve (FR-010).** Computed on request through `EvaporationModel` (decision 4). A
-material without volatility parameters, or a temperature outside its stated Antoine range, returns
-`insufficient data` or a flagged extrapolation (decision 5), never an unmarked estimate.
+Volatility observations retain Antoine form/log base, pressure/temperature units and validity range. Do not mix coefficient forms or extrapolate outside the valid domain without an explicitly approved marked-extrapolation policy; otherwise return missing/out-of-scope. Surface area, airflow and other application assumptions are explicit reviewed inputs, never silent defaults. Reference tables do not establish a validated mixture/perception equation.
 
----
+Seed/version/snapshot are shown with results. Formula-input change and model-version change remain separate indicators. Cache reuse requires identical immutable input/data/rule snapshots, explicit conditions/config/seed/model versions and authorized tenant context; stale results are marked/refused rather than reused under a formula-id-only key.
 
-## 7. Open decisions
+Uncertainty propagation/coverage, sampling method, sensitivity shares, tier/confidence/applicability policy and error-budget reducibility are `insufficient information` until expert evidence is supplied. Do not import Monte Carlo/GUM/Morris/Sobol implementations merely because wireframe labels mention them. A point estimate without approved reporting uncertainty cannot masquerade as a validated evolution curve; render its missing state.
 
-Decisions 1–6 carry over from the schema design. Decision 7 is a case where a requirement asks for
-behaviour that no approved source defines; filling it in would invent a domain rule. Decision 8 is
-a data-model choice for the team. Decisions 9–11 are recorded in `data-model.md` §7 with the same
-numbers.
+## 7. Compliance semantics
 
-| # | Decision | Blocks | Owner |
-|---|---|---|---|
-| 1 | Quantities in grams, or obtain a density column | Proportions, if any formula uses volume | Team |
-| 2 | Odour bar height: mass percentage or odour units | FR-009 | Stakeholder |
-| 3 | Numeric mapping for categorical odour strength | FR-009, if strength is used | Stakeholder |
-| 4 | Which evaporation equation, and its assumptions | FR-010 entirely | Stakeholder |
-| 5 | Behaviour outside the Antoine validity range | FR-010 at skin temperature | Stakeholder |
-| 6 | Which product categories the system checks against | FR-005 | Stakeholder |
-| 7 | The "near limit" band — what share of a limit counts as near | FR-005's near state only | Stakeholder |
-| 8 | Whether a formula declares an expected total or batch size | FR-004's discrepancy flag; the batch-size example in FR-007 | Team |
-| 9 | A version column on `formulas`, and what creates a version | Log and export rows that record `formula_id` + version | Team |
-| 10 | How rows without a numeric limit map onto the four states | FR-005 for those rows | Stakeholder |
-| 11 | Material groups and material-pair checks | The group and pair criteria in FR-003, FR-005, CER-002 | Stakeholder |
+Compliance uses independently sourced rule/category/version/jurisdiction and the correct final-product basis. It always renders distinct EU, TH, ASEAN and US blocks; unbound/no-data is visible, never pass. No aggregate compliant badge conceals the separate jurisdictions.
 
-On decision 8: as written, FR-004's discrepancy check can only fire on rounding; it becomes
-meaningful only if a formula declares an expected total or batch size.
+The external contract distinguishes `pass`, `exceed`, `no_limit_defined`, `data_missing`, `not_applicable` and `inconclusive_ci_straddle`. These are result shapes, not permission to guess their domain mapping. An interval crossing a sourced applicable threshold stays inconclusive rather than using the midpoint. Exact interval endpoints/comparison and threshold basis need a reviewed policy.
 
----
+Rule kinds are semantic: prohibition, restricted maximum, specification, declaration trigger and listed status are not interchangeable. An allergen declaration threshold is not a generic forbidden concentration; a listed entry without a numeric maximum is not an automatic pass. Complete citations include the actual document/version/locator and applicability. Missing citation appears as `data_missing`.
 
-## 8. Build order
+A reviewed applicable hard-block rule is enforced server-side for its defined save/analyze/progress actions and has no skip/dismiss path. Informational warnings may collapse to a persistent badge without inventing acknowledgement requirements. Hard-block applicability, supported categories/jurisdictions, warning bands and disclaimer text remain review gates. The upstream target-market override proposal is outside this MVP; no browser checkbox changes legal applicability.
 
-Ranked so that nothing waits on an undecided domain call.
+Regulatory label generation, compliance-report exports and notification tracking in R2 S4–S6 are deferred. Lab mixing-sheet/QR-label PDFs remain FR-012; they must not claim certified compliance or omit relevant sourced blocks/warnings. Any future safety-relevant output carries the owner-approved disclaimer and human review path; review is not a bypass of a non-dismissable block.
 
-1. **Result envelope** — snapshot loading, `Result[T]` and the citation type. No blockers;
-   testable against fixtures alone.
-2. **Proportions (FR-004)** — unblocked, assuming grams (decision 1); only the discrepancy flag
-   waits on decision 8.
-3. **Restriction status (FR-005)** — the largest cost, though not the hardest engineering: the cost
-   is extracting the IFRA Standards spreadsheet into `material_restrictions` rows. Within, over and
-   insufficient data work for rows with a numeric limit before decision 7 lands; rows without one
-   wait on decision 10, and which categories are checked waits on decision 6.
-4. **Odour profile (FR-009)** — build the interface; implement a weighting once decision 2 is
-   made.
-5. **Evaporation (FR-010)** — the interface is the deliverable until decision 4 is made.
+## 8. Laboratory calculations and evidence
 
----
+`LabService` loads the pinned formula/lot/instrument/calibration/preparation evidence and calls pure unit/uncertainty calculators. Canonical batch targets use declared mass. The user selects each instrument; no silent selection. Expired/unqualified instruments are unavailable. Validate entered decimal precision against that instrument, not a hardcoded UI precision.
 
-## 9. Traceability
+A measured amount persists once with instrument/calibration/actor/time evidence even if the verdict blocks progress. The server computes uncertainty/verdict under an approved policy; WARN persists a flag, BLOCK locks the next step without any role bypass. Reweighing appends a superseding record/reason; the first record remains. Pre-dilution records an explicit user ratio/diluent lot and returns a new solution-weighing row under a reviewed domain model.
 
-| Requirement | Where it lands |
+Mass/volume conversions need sourced density/uncertainty/conditions; drop conversion also needs calibration for the actual material/dropper pair. No universal drop constant or missing-density replacement. The J15 drop illustration's arithmetic is not an approved equation: local dimensional/rounding validation and expert review are required. Missing calibration shows `needs_calibration` with no proceed-as-if-calibrated route.
+
+The upstream 10%/20% examples, instrument linearity assumptions, dilution formula and quantization policy are not adopted numeric production rules. Until approval, return an explicit policy/data gap and gate dependent lab steps. Choosing those values from a mock would violate the no-guesses requirement.
+
+## 9. Decisions remaining before implementation
+
+| Decision/evidence | Blocks | Owner |
+|---|---|---|
+| Decimal representation/precision/API serialization and exact validation | Official sums, quantities, measured input preservation | Engineering team |
+| Trial request contract and snapshot overlay validation | FR-007 | Engineering team |
+| Density/calibration observations and canonical composition/dilution mapping | Volume/drop/carryover, finished-product comparisons | Domain owner |
+| Mixture/evaporation/perception model, Profile A/B and endpoint definitions | FR-009, FR-010 | Domain owner |
+| Uncertainty/coverage/tier/confidence/applicability/error-budget policy | CER-004, CER-005, estimated value reporting | Domain owner |
+| Approved regulatory rule versions/category coverage/non-numeric semantics, hard-block applicability and disclaimer | FR-005 | Domain/legal owner |
+| Material-group/pair source definitions and rules | Group/pair checks | Domain owner |
+| Instrument qualification/validity, WARN/BLOCK tolerances, pre-dilution and quantization | FR-013 | Domain owner |
+| Cache identity/persistence/progress and rights/log integration | Reliable orchestration and compliance evidence | Engineering team |
+
+Old open questions about version creation and declared batch target are resolved at behavior level by the source MVP: explicit immutable saves and declared target mass. Their schema/validation still need implementation. Retaining a model interface is not completing a domain task. The earlier near-limit behavior cannot be assigned a numeric band; the adopted UI uses separate inconclusive/missing states, with additional warnings only if a sourced policy defines them.
+
+## 10. Build order, traceability and validation
+
+1. Implement reviewed REST envelopes, exact input validation, immutable snapshots and tenant/action checks with synthetic contract fixtures. Resolve what-if and precision gates before those commands.
+2. Add version saves, concurrency rejection, run/progress/cache identity and citation/provenance persistence; verify deterministic output and missing propagation without chemical assumptions.
+3. Implement only domain-approved quantity/compliance calculators. Do not mark physics/uncertainty stages done because a UI placeholder exists.
+4. Add physical/perceptual/profile/uncertainty implementations after evidence/model decisions close; test against expert-approved cases and boundary conditions.
+5. Add lab unit/measurement/pre-dilution behavior after instrument/density/tolerance review, then authorized PDFs/document/completeness integrations.
+
+| Requirement | Design and validation focus |
 |---|---|
-| FR-004 | §1, §6 Proportions |
-| FR-005 | §1, §5, §6 Restriction status; decisions 6, 7, 10, 11 |
-| FR-006 | §2 — citations carried on `Result[T]` |
-| FR-007 | §3 — in-memory overlay, same engine |
-| FR-009 | §4 `OdourWeighting`, §6; decision 2 |
-| FR-010 | §4 `EvaporationModel`, §6; decisions 4, 5 |
-| FR-003 (groups), FR-005 and CER-002 (pairs) | §1 — not designed; decision 11 |
-| CER-001 | §2 `Citations` |
-| CER-002 | §2 `insufficient_data` + `Missing` |
-| CER-003 | §3 — pure function over a snapshot |
-| NFR-004 | §3 — no AI or model call |
+| FR-004, FR-011 | Exact sum/no normalization, immutable version/concurrency and basis/dilution |
+| FR-005, FR-014 | Independent jurisdiction findings, complete citations, missing/non-numeric/inconclusive semantics and server block |
+| FR-006, CER-001, CER-005 | Prediction-specific complete provenance and explicit conditions |
+| FR-007, CER-003 | Same pure engine on in-memory overlay; no stored trial version; audited action |
+| FR-009, FR-010, CER-004 | Approved profiles/curves, uncertainty bands, seed/model/input freshness |
+| FR-012, FR-013 | Pinned batch/lot/instrument, conversion gaps, persist BLOCK measurement, append-only reweigh/preparation |
+| NFR-004, NFR-007, NFR-008 | No model-service dependency, contract-driven UI, stale-cache safety and synthetic tutorial isolation |
 
----
-
-## 10. Differences from the Calculation Engine page
-
-The page should be corrected on these points.
-
-| Page says | This file |
-|---|---|
-| `material_odor_props` | `material_odor_properties` (`data-model.md` §3) |
-| Example cites `materials.antoine_a` | The column is in `material_volatility` |
-| Read set omits `odor_types`, `regulation_sources` and the vapour-pressure, enthalpy and diffusion columns | Added in §5 |
-| Restriction status "Ready" | Partly ready; see §1 |
-| "Only `pct_in_product` goes unknown" when the dilution is missing | The restriction status goes unknown too (§6) |
-| Refers to an explanation endpoint | No such route is defined; FR-006 reads the attached citations (§2) |
-| "Four decisions that are not ours to make" | Its own table has six stakeholder rows |
+Go business tests include exact sums, missing dilution/category/density/pair rules, mismatched source units, model applicability, deterministic seeds/cache keys, interval-straddle cases once the policy exists, hard-block rejection and lab evidence preservation. Contract checks verify value envelopes and no secret/internal errors. Vitest checks presentation states; Playwright checks end-to-end access and what-if/version/lab/tutorial journeys. Synthetic fixtures test behavior, not chemical accuracy; domain correctness needs approved reference cases.
