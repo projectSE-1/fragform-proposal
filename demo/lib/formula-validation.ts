@@ -15,8 +15,14 @@ export function validateDemoDeclaration(items:Ingredient[]):string|null {
   },0n);
   return total===100n*scale?null:'Declared amounts must total exactly 100%. Values are never normalised.';
 }
+// Exact 0 < dilution <= 100 on the decimal string; Number() would round 100.0000000000000001 to 100.
+function validDilution(value:string):boolean {
+  if(!/^\d+(\.\d+)?$/.test(value)||!/[1-9]/.test(value)) return false;
+  const [integer,fraction='']=value.split('.');
+  return BigInt(integer)<100n||(BigInt(integer)===100n&&!/[1-9]/.test(fraction));
+}
 export function validateDemoContext(draft:FormulaVersion):string|null {
   if(!draft.vehicle.trim()||!draft.category.trim()) return 'Select a demo vehicle and application.';
-  if(!/^\d+(\.\d+)?$/.test(draft.dilution)||Number(draft.dilution)<=0||Number(draft.dilution)>100) return 'Enter a declared product dilution greater than 0 and no more than 100%.';
+  if(!validDilution(draft.dilution)) return 'Enter a declared product dilution greater than 0 and no more than 100%.';
   return validateDemoDeclaration(draft.ingredients);
 }
