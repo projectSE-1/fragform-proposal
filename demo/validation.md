@@ -37,3 +37,11 @@ Keyboard/reference/account/public tab handling, fixed profile/reason presets, is
 Browser checks passed for opening the custom role menu, ArrowDown/End/Home navigation, Escape restoring the trigger, Tab and Shift+Tab closing without trapping focus, outside-click navigation, and the selected marker. Selecting the current role with dirty inputs opens no discard dialog. Selecting another role still prompts: Keep editing retains Formulator and the edited amount; Discard & continue changes to Org Admin and exposes Administration. Pending access still removes formula navigation.
 
 The popup stays within the visible viewport at 375×812, 360×800, 320×568 and 844×390 landscape, without page-wide horizontal overflow. The narrowest case was corrected after browser measurement. In landscape, End scrolls the focused Pending access item into view above the footer. A focused read-only review found no material role, focus or permission issues. No production permission behavior is claimed.
+
+## Shared dropdowns — 2026-10-04
+
+All 27 select definitions use the shared Dropdown; the remaining persona control uses its dedicated menu. Browser checks confirmed Vehicle Escape preserves A while End/Enter commits B; dirty-version selection still opens the confirmation dialog, Keep editing retains the draft, and Discard and switch opens read-only v2. Disabled historical fields stay disabled.
+
+Within the upload dialog, the Document type popup enters the native top layer; SDS selection enables the correct SKU subject and DEMO-SKU02 remains selectable. Selecting an option inside a wrapping label closes the popup without reopening it. Escape dismisses only the dropdown and keeps the dialog open. End reaches the last document type with focus retained on the labelled combobox; Tab removes the list and continues to Subject type. Profile presets without explicit option values still select Robin Demo and enable Save.
+
+Popup and page bounds passed at 375×812 and 320×568 in the upload dialog. The account dropdown opens upwards within bounds at 844×390 landscape. Read-only review found no material callback, disabled-option, label or focus regressions. These are focused current-Chromium UI checks, not a full browser/screen-reader certification.

@@ -41,7 +41,7 @@ Input validation here demonstrates decimal-string handling and the 100% declarat
 
 ## Editing and checking
 
-`components/demo-app.tsx` owns navigation/personas/dirty confirmation. `formula-pages.tsx`, `lab-pages.tsx` and `access-pages.tsx` own the workflows. `app/globals.css` defines semantic tokens and responsive shell; page styles live next to components. Pure fixtures/action mapping are in `lib/model.ts`, decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
+`components/demo-app.tsx` owns navigation/personas/dirty confirmation. `formula-pages.tsx`, `lab-pages.tsx` and `access-pages.tsx` own the workflows. `dropdown.tsx`/`dropdown.css` provide shared form menus; `persona-switcher.tsx` owns the dedicated role preview menu. `app/globals.css` defines semantic tokens and responsive shell; page styles live next to components. Pure fixtures/action mapping are in `lib/model.ts`, decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
 
 ```powershell
 npm run typecheck
