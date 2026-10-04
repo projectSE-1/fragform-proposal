@@ -1,0 +1,29 @@
+/* AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted. */
+.interaction-preview{margin:22px 0}
+.interaction-preview-header{display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.interaction-preview-header h2{margin:0 0 3px;font-size:15px}
+.interaction-preview-header p{margin:0}
+.interaction-preview-header>.badge{margin-left:auto}
+.interaction-preview-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;flex-shrink:0;background:var(--purple-soft);color:var(--purple)}
+.interaction-preview-note{display:flex;gap:8px;align-items:flex-start;margin:16px 0 18px;color:var(--muted);font-size:11px;line-height:1.7;max-width:760px}
+.interaction-preview-note svg{margin-top:2px;color:var(--purple)}
+.interaction-preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.interaction-example{display:flex;flex-direction:column;min-width:0;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface-alt)}
+.interaction-example-heading{display:flex;align-items:center;gap:8px;color:var(--purple-dark)}
+.interaction-example-heading h3{font-size:12px;margin:0;line-height:1.5}
+.interaction-example-label{font-size:10px;color:var(--muted);margin:5px 0 16px}
+.interaction-example-members{display:flex;flex-direction:column;gap:10px;margin-bottom:15px}
+.interaction-example-members strong{display:block;font-size:12px;line-height:1.5;font-weight:600}
+.interaction-example-members span{display:block;font-size:10px;color:var(--muted);letter-spacing:.3px;overflow-wrap:anywhere}
+.interaction-example>p{margin:0 0 14px;line-height:1.7;font-size:11px}
+.interaction-example-details{margin-top:auto;border-top:1px solid var(--line)}
+.interaction-example-details summary{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:10px 0;cursor:pointer;color:var(--purple-dark);font-size:11px;list-style:none}
+.interaction-example-details summary::-webkit-details-marker{display:none}
+.interaction-example-details[open] summary svg{transform:rotate(180deg)}
+.interaction-example-details dl{display:grid;grid-template-columns:1fr;gap:3px;margin:0 0 4px;font-size:11px;line-height:1.7}
+.interaction-example-details dt{color:var(--muted)}
+.interaction-example-details dd{margin:0 0 8px;overflow-wrap:anywhere}
+.interaction-example-details code{font-size:10px;color:var(--ink)}
+.interaction-preview-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:18px;padding-top:14px;color:var(--muted);font-size:11px}
+@media(max-width:900px){.interaction-preview-grid{grid-template-columns:1fr}.interaction-example{padding:15px}.interaction-example-members{flex-direction:row;flex-wrap:wrap;gap:10px 24px}.interaction-example-details dl{grid-template-columns:100px minmax(0,1fr);gap:8px}.interaction-example-details dd{margin:0}.interaction-example-label{margin-bottom:12px}}
+@media(max-width:520px){.interaction-preview-header{gap:10px}.interaction-preview-header>div{flex:1;min-width:0}.interaction-preview-header>.badge{margin-left:50px}.interaction-preview-note{font-size:11px}.interaction-example-members{flex-direction:column;gap:9px}.interaction-example-details dl{grid-template-columns:1fr;gap:3px}.interaction-example-details dd{margin-bottom:8px}}
