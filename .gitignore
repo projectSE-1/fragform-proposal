@@ -1,3 +1,7 @@
+# Owner IP — stakeholder-supplied material data. Never commit.
+# See .docs/00-context/data-10-example-subtance/DO-NOT-COMMIT.md
+.docs/00-context/data-10-example-subtance/
+
 # Secrets
 .env
 .env.*
@@ -16,11 +20,13 @@ build/
 *.test
 vendor/
 
-# Owner data and lecturer material — never committed (rule.md §0.1, IP-002)
-.docs/00-context/data-10-example-subtance/
-lecturer-material-do-not-commit/
+lecturer-material/
 
 # OS / editor
 .DS_Store
 Thumbs.db
 *.swp
+
+# Stakeholder's PRIVATE repo, cloned here for reading only.
+# Their CONTRIBUTING.md §12 forbids copying it elsewhere. Our repo is PUBLIC.
+.docs/00-context/stakeholder-repo/
