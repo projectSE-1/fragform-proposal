@@ -9,7 +9,7 @@ export const demoLimitStandard={
   id:'DEMO-STD',
   version:'v1',
   labelEn:'Demo limit table (fictional, IFRA-style layout)',
-  labelTh:'ตารางเกณฑ์สมมติ (จัดรูปแบบแบบตาราง IFRA)',
+  labelTh:'ตารางเกณฑ์สมมติ (รูปแบบคล้ายตาราง IFRA)',
 } as const;
 
 // Max % of each material in the finished product, per demo application.
@@ -23,6 +23,9 @@ export const demoStandardLimits:Record<string,Record<string,string>>={
 
 // One material can come from several suppliers, each with its own document set.
 // Supplier A sends no usage-level certificate; supplier B sends one with its own maximums.
+// Where both list a material, supplier B is never looser than DEMO-STD: which source governs is
+// an undecided domain rule, so the demo must not suggest a certificate can relax the standard.
+// DEMO-M03 shows a certificate level where the standard has no row (still insufficient data there).
 export const demoSuppliers=[
   {
     id:'DEMO-SUP-A',
@@ -32,7 +35,7 @@ export const demoSuppliers=[
       {en:'CoA',th:'CoA'},
       {en:'Spec sheet',th:'ใบสเปก'},
       {en:'Allergen list',th:'รายการสารก่อภูมิแพ้'},
-      {en:'Dietary / origin statements',th:'หนังสือรับรองแหล่งที่มา'},
+      {en:'Dietary / origin statements',th:'หนังสือรับรองด้านอาหาร/แหล่งที่มา'},
     ],
     certificate:null,
   },
@@ -50,7 +53,7 @@ export const demoSuppliers=[
       version:'v1',
       // Max % in the finished product stated by this fictional certificate.
       limits:{
-        'Demo application A':{'DEMO-M01':'12','DEMO-M02':'5','DEMO-M03':'5','DEMO-M04':'3','DEMO-M05':'0.5','DEMO-M06':'3'},
+        'Demo application A':{'DEMO-M01':'10','DEMO-M02':'5','DEMO-M03':'5','DEMO-M04':'2.5','DEMO-M05':'0.5','DEMO-M06':'3'},
         'Demo application B':{'DEMO-M01':'6','DEMO-M02':'8','DEMO-M03':'2','DEMO-M04':'1.5','DEMO-M05':'0.2','DEMO-M06':'1'},
       } as Record<string,Record<string,string>>,
     },

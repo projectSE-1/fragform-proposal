@@ -54,8 +54,9 @@ test('the application changes which limit row applies',()=>{
 });
 
 test('a value exactly at the limit is within; one smallest step above exceeds',()=>{
-  const at=withAmounts(['35','30','20','15'],{dilution:'10'}); // DEMO-M04: 15 × 10 / 100 = 1.5 ≤ 2.5
-  assert.equal(checkStandardLimit(at,'DEMO-M04').status,'pass');
+  const below=withAmounts(['35','30','20','15'],{dilution:'10'}); // DEMO-M04: 15 × 10 / 100 = 1.5 < 2.5
+  assert.equal(checkStandardLimit(below,'DEMO-M04').status,'pass');
+  assert.equal(checkStandardLimit(below,'DEMO-M04').differencePct,'1');
   const equal=withAmounts(['37.5','30','20','12.5']); // DEMO-M04: 12.5 × 20 / 100 = 2.5 = limit
   const finding=checkStandardLimit(equal,'DEMO-M04');
   assert.equal(finding.status,'pass');
@@ -80,12 +81,16 @@ test('invalid input never produces a pass: total, dilution and absent rows are d
   assert.equal(finding.missing,'invalid_input');
   assert.equal(finding.productPct,null);
   assert.ok(finding.inputError);
-  for(const dilution of ['','0','101','abc','1e2']){
+  for(const dilution of ['','0','0.000','101','100.0000000000000001','abc','1e2']){
     const bad=checkStandardLimit({...seeded(),dilution},'DEMO-M04');
     assert.equal(bad.status,'data_missing',dilution);
     assert.equal(bad.productPct,null,dilution);
   }
-  assert.equal(checkStandardLimit(seeded(),'DEMO-M06').missing,'not_in_formula');
+  for(const dilution of ['100','100.000','0.5']) assert.equal(checkStandardLimit({...seeded(),dilution},'DEMO-M04').missing,null,dilution);
+  const absent=checkStandardLimit(seeded(),'DEMO-M06');
+  assert.equal(absent.status,'data_missing');
+  assert.equal(absent.missing,'not_in_formula');
+  assert.equal(absent.productPct,null);
   assert.deepEqual(summarizeStandardLimits(notHundred),{pass:0,exceed:0,no_limit_defined:0,data_missing:4});
 });
 
@@ -96,12 +101,22 @@ test('supplier evidence stays separate: no certificate is missing evidence, not 
   assert.equal(a.missing,'no_certificate');
   const b=checkSupplierCertificate(draft,'DEMO-M04','DEMO-SUP-B');
   assert.equal(b.status,'pass');
-  assert.equal(b.limitPct,'3');
+  assert.equal(b.limitPct,'2.5');
   assert.equal(checkSupplierCertificate(draft,'DEMO-M02','DEMO-SUP-B').status,'exceed');
   // The standard has no row for DEMO-M03; the certificate's own level is reported on its own.
   assert.equal(checkStandardLimit(draft,'DEMO-M03').status,'no_limit_defined');
   assert.equal(checkSupplierCertificate(draft,'DEMO-M03','DEMO-SUP-B').status,'pass');
   assert.equal(checkSupplierCertificate({...draft,category:'Unlisted application'},'DEMO-M04','DEMO-SUP-B').missing,'not_listed');
+});
+
+test('a supplier certificate is never looser than the demo standard where both list a material',()=>{
+  for(const supplier of demoSuppliers){
+    if(!supplier.certificate) continue;
+    for(const [application,rows] of Object.entries(supplier.certificate.limits)) for(const [id,limit] of Object.entries(rows)){
+      const standard=demoStandardLimits[application]?.[id];
+      if(standard!==undefined) assert.ok(compareDecimal(limit,standard)<=0,`${supplier.id} ${application} ${id}`);
+    }
+  }
 });
 
 test('fixtures stay fictional: demo IDs only and no CAS-number-shaped strings',()=>{

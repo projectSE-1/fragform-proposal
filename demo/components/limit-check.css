@@ -77,8 +77,15 @@
 .limit-suppliers>ul>li>p{margin:0;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
 .limit-suppliers>ul>li>p code{font-size:11px;color:var(--muted)}
 
+.limit-jurisdiction{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-alt);font-size:13px}
+.limit-jurisdiction p{margin:2px 0 0;line-height:1.6}
+.limit-jurisdiction .badge{margin-left:0;font-size:11px;flex-shrink:0}
+/* The heading only receives programmatic focus after "Evaluate now"; it is not an interactive control. */
+.limit-result h3:focus,.limit-result h3:focus-visible{outline:none}
+.formula-limit-inline{display:none}
 .limit-actual{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 .limit-actual .badge{margin-left:0;font-size:11px}
 
 @media(max-width:620px){.limit-figures{grid-template-columns:repeat(2,minmax(0,1fr))}.limit-disclosure dl{grid-template-columns:1fr;gap:2px}.limit-disclosure dd{margin-bottom:8px}.limit-summary{margin:0 16px 14px}}
-@media(max-width:600px){.limit-row-button>svg:last-child{display:none}.limit-row-button .limit-chip{padding:3px 7px;gap:4px}}
+/* Phones: the chip moves under the material ID so the table keeps its previous width. */
+@media(max-width:600px){.formula-limit-col{display:none}.formula-limit-inline{display:block;margin-top:2px}.formula-limit-inline .limit-row-button{min-height:36px}}

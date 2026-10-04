@@ -77,3 +77,39 @@ The subsequent install reported Windows `EPERM` while unlinking the native Next 
 - The fixed MOCK report renders three hypothetical pair/group findings in TH/EN, with report/version/UI-reference basis. Changing the first amount to 34 and opening the basis kept that input and all three scripted findings. The separate Actual evaluation footer stays Insufficient data. Independent read-only review confirmed the mock is imported only by the display component, with no draft/save/Evaluate/export dependency; export isolation was reviewed in code rather than through a new download test.
 - The Regulations & IFRA shortcut opens Compliance & docs. With an unsaved edit it prompts; Keep editing retains Formulator and the value, then Discard restores v4. Standards links match verified official Thai FDA, ASEAN and IFRA sources. The IFRA document help expands with keyboard, its vault anchor reaches Sample documents, and choosing IFRA certificate of conformity in the existing upload dialog selects SKU. The modal was closed without adding a record. Four independent jurisdiction cards remain visible and missing, with no IFRA fifth-jurisdiction or safety-pass claim.
 - Guide, contextual help and mock bounds passed at 375×812 and 320×568; standards cards stack within 320×568 without page-wide overflow. TH light and EN dark were checked, and the desktop standards/mock views were visually inspected at 1280×900. Existing theme preference was restored and temporary viewport/tab cleaned up. No browser-console errors were observed in the temporary test tab. These are focused current-browser checks, not a full accessibility or scientific validation.
+
+## Mock limit check (pass / exceed) — 2026-10-04
+
+- `npm run typecheck` and `npm run build` passed. `npm test`: 12 passed, 0 failed. The new limit-check tests cover:
+  - exact product share with dilution applied once, plus decimal comparison;
+  - the seeded pass / exceed / no-limit states and counts;
+  - application-specific rows;
+  - the exact at-limit boundary and one step above it;
+  - a rounded-down non-terminating maximum;
+  - invalid totals and dilutions, including `100.0000000000000001`, giving `data_missing` (never a pass);
+  - supplier certificates that are missing, unlisted or reported separately, and never looser than the standard;
+  - fixtures that hold only DEMO IDs and no CAS-shaped strings.
+- A scripted comparison of every added line found none of the owner sample's CAS numbers, names, identifiers, supplier names or document IDs. The owner files stayed outside the repository.
+- Multi-lens review (compliance, logic, UI in a real browser, documentation), each finding checked by an independent verifier. Fixed after review:
+  - the combined "อย. / IFRA" verdict label: the column is now Mock limit / เกณฑ์สมมติ, and a separate Thai FDA row is shown as not mocked;
+  - mock marking where the verdict is shown;
+  - supplier chips that could read as material verdicts, and certificate values that were looser than the standard;
+  - focus loss after "Evaluate now";
+  - visible chip text missing from the accessible name;
+  - the "incomplete" wording and the English-only reason in Thai mode;
+  - the meter label overlapping 0% far above the limit;
+  - the phone table widened by the new column, now an inline chip;
+  - "1 percentage points";
+  - percent signs on the calculation operands;
+  - the inexact dilution bound;
+  - test gaps;
+  - presentation numbers that assumed the seeded formula after earlier script steps had changed it;
+  - stale DEMO.md and prototype status.
+- Current Chromium checks:
+  - TH/EN, light/dark, 1440×1000 and 390×844 rendered without page overflow, and on phones the composition table keeps its previous scroll width (366 px).
+  - Before Evaluate, the row name is "เกณฑ์สมมติของ Soft study 04: ตรวจ (ยังไม่ได้ประเมิน)". Evaluate now moves focus to the "ผ่านเกณฑ์สมมติ" heading.
+  - Soft study 04 is within (2% ≤ 2.5%, 0.5 points of headroom). Petal study 02 exceeds (6% > 5%, over by 1, maximum 25%). Wood study 03 has no mock limit, and Application B flips the verdicts.
+  - An edit clears the result. A 41% first row reports the Thai reason for an invalid total in every row.
+  - Escape returns focus to the row button.
+  - Export isolation was reviewed in code.
+- These are focused checks of a synthetic demo, not a regulatory, scientific or full accessibility validation.
