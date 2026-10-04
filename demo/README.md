@@ -25,9 +25,10 @@ Open http://127.0.0.1:3000. It binds to loopback only. To build and run the stan
 2. Start what-if, change amounts and Evaluate. The official-result placeholder returns **insufficient data**. “Show layout illustration” displays hand-authored coordinates independent of the input. Discard or explicitly save the trial.
 3. In Lab workspace select a saved version, instrument and lots. Create a batch, record a preset reading, then reweigh with a reason. Try BLOCK: choosing NORMAL does not dismiss the recorded block. Walk through the labelled remediation simulation.
 4. In Compliance & docs choose a document type and its matching SKU or lot, then an embedded sample. Observe simulated queued/scanning/parsing/ready or rejected states. Repeating a type/subject appends another version with a link to the retained earlier record. No actual file is accepted.
-5. Switch the Demo persona to Pending access or Org Admin. Inspect pending access, fixed role controls, synthetic MFA, account rights and the reasoned metadata query. Persona switching is a presentation test; it never grants real access. Account consent history persists when the withdrawal preview changes access to pending.
+5. Open the user menu: its first level shows Internal Team, SaaS Workspace and Client Portal. Open Internal Team to choose an existing permission profile such as Org Admin or the separate Pending access account status. The two external groups are planned and unavailable in this MVP. Inspect pending access, fixed role controls, synthetic MFA, account rights and the reasoned metadata query. Persona switching is a presentation test; it never grants real access. Account consent history persists when the withdrawal preview changes access to pending.
 6. Use Ready view / Loading preview / Error preview to exercise shared request states; Retry restores only the synthetic display.
 7. Opt into the isolated tutorial. Q6 is available to administrator personas only; pending personas have Q0–Q5. Use the public overview, how-to/FAQ and labelled draft legal notice.
+8. In Interaction checks, explore the Synergy, Masking and Material-group example cards. Sample details disclose their fixture IDs and hand-authored basis. These UI examples are independent of the selected formula; opening them never edits a draft or contributes to evaluation/export results. Scientific evaluation remains insufficient data.
 
 ## Scope and limitations
 
@@ -45,7 +46,7 @@ Input validation here demonstrates decimal-string handling and the 100% declarat
 
 ## Editing and checking
 
-`components/demo-app.tsx` owns navigation/personas/dirty confirmation. `formula-pages.tsx`, `lab-pages.tsx` and `access-pages.tsx` own the workflows. `dropdown.tsx`/`dropdown.css` provide shared form menus; `persona-switcher.tsx` owns the dedicated role preview menu. `theme-toggle.tsx` and `lib/theme.ts` own the local appearance preference and pre-paint bootstrap. `app/globals.css` defines light/dark semantic tokens and responsive shell; page styles live next to components. Pure fixtures/action mapping are in `lib/model.ts`, decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
+`components/demo-app.tsx` owns navigation/personas/dirty confirmation. `formula-pages.tsx`, `lab-pages.tsx` and `access-pages.tsx` own the workflows. `interaction-checks.tsx` presents the separate UI-only examples from `lib/interaction-fixtures.ts`. `dropdown.tsx`/`dropdown.css` provide shared form menus; `persona-switcher.tsx` owns the three-group menu and nested permission preview. `theme-toggle.tsx` and `lib/theme.ts` own the local appearance preference and pre-paint bootstrap. `app/globals.css` defines light/dark semantic tokens and responsive shell; page styles live next to components. Pure fixtures/action mapping are in `lib/model.ts`, decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
 
 ```powershell
 npm.cmd run typecheck

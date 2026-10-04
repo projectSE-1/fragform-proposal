@@ -6,7 +6,9 @@
 
 Owner request, 2026-10-04: create a runnable synthetic demo using ui-ux-pro-max and the linked Claude artboard as a visual reference. [The standalone demo](../../../demo/README.md) uses the retained Next.js App Router/TypeScript stack and purple-accented table/explanation/chart composition in light and dark themes. [Design decisions](../../../demo/design-decisions.md) record the skill/reference choices. Run instructions are in the demo README.
 
-The demo presents waves 0–5 with formula search/create/immutable versions/what-if, explicitly synthetic analytical illustration and missing reasons, lab fixture recording/reweigh/block states, typed embedded document processing, read-only references, public/account/admin paths and opt-in tutorial. Seven fixed role personas plus pending access follow the current action map. Exact input checks and immutable-state tests cover prototype behavior only.
+The demo presents waves 0–5 with formula search/create/immutable versions/what-if, explicitly synthetic analytical illustration and missing reasons, lab fixture recording/reweigh/block states, typed embedded document processing, read-only references, public/account/admin paths and opt-in tutorial. The user menu shows three business groups; Internal Team nests the seven fixed permission personas and the separate pending account status. SaaS Workspace and Client Portal are labelled planned and unavailable, retaining their scope deferral. Exact input checks and immutable-state tests cover prototype behavior only.
+
+Interaction checks also presents three labelled, hand-authored UI examples for synergy, masking and material grouping. They are independent of the selected formula, do not alter saved versions or exports, and do not supply scientific interaction rules. Actual scientific evaluation remains insufficient data.
 
 Owner request, 2026-10-04: add a top-bar light/dark switch to the standalone demo. Only the appearance value is retained in browser local storage; it is applied before paint and survives refresh/reset. This prototype addition does not change the production MVP deferral of dark mode.
 

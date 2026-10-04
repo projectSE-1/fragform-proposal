@@ -22,6 +22,12 @@ Public endpoints return no system data. Own-account endpoints bind to the caller
 
 ## 2. Seven fixed identifiers
 
+### Business groups versus permission identifiers
+
+The owner's three business groups are **Internal Team / Perfumer Lab**, **SaaS Workspace User** and **Client Portal User**. They describe user contexts, while the fixed identifiers below describe action permissions. The current MVP covers the authorized laboratory context; external SaaS onboarding and Client Portal remain deferred. System administration is a separate administrative permission, and pending access is an account state, not another business group.
+
+The standalone synthetic demo presents the three groups first and nests the existing permission profiles under Internal Team. The two external groups are labelled planned and cannot be selected. This presentation does not add role IDs, change server permissions or approve the deferred workflows.
+
 Use these exact identifiers from the source contract. There is no free-text role creator in the MVP.
 
 | Identifier | Meaning within this MVP | MFA required |

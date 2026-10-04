@@ -20,7 +20,7 @@
 | Composition | Formula context → materials + explanation → interactions → analytical view/evidence |
 | Charts | Hand-authored synthetic SVG/HTML coordinates, accessible text/data view; arbitrary edited inputs yield insufficient data |
 | Safety of exploration | Explicit immutable saves, separate what-if, dirty-state confirmation, session-only state |
-| Access | 7 fixed personas plus pending; server authorization remains future Go work |
+| Access | 3 business-group cards; Internal Team nests the 7 fixed permission personas and separate pending status; external groups stay planned; server authorization remains future Go work |
 | Accessibility | Labels/captions, skip link, visible focus, native modal dialog, Escape, keyboard reference tabs, responsive tables, reduced-motion override |
 
 The skill's automatic-saving suggestion is not used for formulas: the local contract requires explicit immutable saves. The static helper sits after the main content and does not cover critical controls. Full bilingual content/terminology and final brand/legal/domain copy remain review tasks; this prototype translates navigation and principal workflow actions, with some technical fixture explanations in English.
@@ -32,6 +32,18 @@ Owner icon feedback, 2026-10-04: forward/open indicators use a compact rounded r
 Owner screenshot feedback on 2026-10-04 identified the browser-native role dropdown as visually inconsistent. Replace this specific branded control with an opaque, plum-accented menu: role icons, short scope descriptions and a selected checkmark. Keep the eight existing role IDs and the existing guarded role-change function; this changes presentation only. No additional dependency is needed.
 
 A focused ui-ux-pro-max search (`dropdown keyboard focus`, UX domain) returned applicable visible-focus and unobscured-focus guidance. The menu uses a button with expanded state, radio menu items, roving focus, arrow/Home/End/typeahead navigation, Escape, normal Tab departure and outside-click dismissal. Focus returns before a guarded change so the unsaved-editor dialog retains focus. Width and scrolling are bounded for narrow and landscape viewports; reduced-motion overrides also cover its short entrance animation.
+
+## Business groups and nested permissions — 2026-10-04
+
+Owner clarification: show three main groups, then separate granular permissions. The first menu level is Internal Team, SaaS Workspace and Client Portal. Internal Team opens the existing seven permission profiles; System Admin has a separate caption and Pending access is explicitly an account status. SaaS Workspace and Client Portal are discoverable but unavailable, matching the deferred scope. No new role identifier, tenant switch or action grant is introduced.
+
+UI UX Pro Max guidance on progressive disclosure, predictable Back, visible focus and touch targets informed the hierarchy. The Back row uses a calm secondary surface, a rounded plum icon tile and a left chevron matching the shared icon style. An explicit appearance reset prevents native button styling; its 44px minimum target and hover/pressed/focus states use existing theme tokens. ArrowRight enters Internal, ArrowLeft/Escape returns to groups, and another Escape closes with trigger focus restored. Existing guarded role changes remain intact.
+
+## Interaction examples — 2026-10-04
+
+Owner requested mock data for Interaction checks. Three cards illustrate Synergy, Masking and a material group using invented DEMO material records. Each is marked Illustrative only and exposes a DEMO-INT fixture ID with the hand-authored basis. Fixture IDs are not source-rule identifiers. A permanent explanation states that the examples are independent of the selected formula and provide no chemistry, safety or performance evaluation; the scientific status remains Insufficient data (rules 58–60 and 85).
+
+The focused UI UX Pro Max query `color not only` informed explicit category names, icons and textual status. Native details controls provide keyboard disclosure with 44px targets; existing semantic colors pair light/dark surfaces. Cards stack on narrow layouts. This display has no formula, version, dirty-state or export setters; no interaction engine or synthetic fallback is added.
 
 ## Shared form dropdowns
 
