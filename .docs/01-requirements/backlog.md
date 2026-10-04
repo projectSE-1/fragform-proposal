@@ -656,7 +656,9 @@ Deferred: offline sync/desktop wrapping, reference-data management, R1-S6 formul
 graphical provenance renderer (all provenance data remains in scope), R2-S4–S6 regulatory
 label/export/notification, full X4-S6 audit dashboard (restricted local query remains in scope),
 R3–R6, external-client portal/SaaS billing/orders, production/safety approvals, evaluation
-panels, AI mascot chat, notification bell and dark mode.
+panels, AI mascot chat, notification bell and production dark mode.
+
+Prototype-only appearance addition, 2026-10-04: the owner requested a light/dark switch in the standalone synthetic demo; production dark mode remains deferred. See [prototype status](../02-design/prototype/prototype.md).
 
 ## 11. Traceability and Revision Record
 

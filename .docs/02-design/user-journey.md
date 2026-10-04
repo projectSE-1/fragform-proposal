@@ -237,4 +237,6 @@ aligned with these paths and the backlog before a task is ready.
 Offline synchronization/desktop wrapping, reference-data editing, formula comparison, graphical
 provenance rendering, full audit dashboard, R2 regulatory export/label/notification, R3–R6,
 client portal/SaaS/orders, production/safety approvals, evaluation panels, AI help chat,
-notification bell and dark mode remain outside this MVP.
+notification bell and production dark mode remain outside this MVP.
+
+The owner-requested light/dark switch is available in the synthetic demo only; see [prototype status](prototype/prototype.md).

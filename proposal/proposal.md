@@ -112,9 +112,11 @@ library versions and optional UI/chart/i18n packages remain engineering decision
 Outside this MVP: client ordering/production approvals, external-client formula adjustment,
 SaaS billing, evaluation panels, reference-data editing, offline synchronization/desktop
 packaging, formula comparison, graphical provenance rendering, the full audit dashboard,
-R2 regulatory labels/export/notification, R3–R6, AI mascot chat, notification bell and dark mode.
+R2 regulatory labels/export/notification, R3–R6, AI mascot chat, notification bell and production dark mode.
 Deferring the audit dashboard does not defer the restricted log-query/export capability,
 append-only evidence or privacy rights required with authentication.
+
+Prototype-only appearance addition, 2026-10-04: the owner requested a light/dark switch in the standalone synthetic demo. See [prototype status](../.docs/02-design/prototype/prototype.md).
 
 Significant implementation needs a ready task with acceptance criteria, reviewed API/permission
 contracts and resolved domain decisions. In particular, the owner/domain expert must validate

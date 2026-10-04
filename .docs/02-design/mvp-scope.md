@@ -53,7 +53,9 @@ Keep FR-001–FR-010 recognizable rather than silently reusing their IDs for unr
 
 ## What stays outside this MVP
 
-Offline synchronization and desktop wrapping; reference-data management; formula comparison R1-S6; a graphical provenance editor/view (all underlying provenance remains available as a list/tree); R2 regulatory label/export/notification S4–S6 (lab PDFs in wave 3 remain in scope); the full X4-S6 audit dashboard; R3–R6; client ordering/production approvals; external-client formula adjustment and SaaS billing; evaluation panels; AI mascot chat; notification bell; dark mode.
+Offline synchronization and desktop wrapping; reference-data management; formula comparison R1-S6; a graphical provenance editor/view (all underlying provenance remains available as a list/tree); R2 regulatory label/export/notification S4–S6 (lab PDFs in wave 3 remain in scope); the full X4-S6 audit dashboard; R3–R6; client ordering/production approvals; external-client formula adjustment and SaaS billing; evaluation panels; AI mascot chat; notification bell; production dark mode.
+
+Owner-requested prototype addition, 2026-10-04: a light/dark appearance switch is available in the standalone synthetic demo. Production dark mode remains deferred; see [prototype status](prototype/prototype.md).
 
 Public signup creates a pending account, not access to confidential formulas. The seven role identifiers in the source contract are used for the lab access model, not a public client portal. The complete action/record mapping belongs in [roles-permissions.md](roles-permissions.md).
 

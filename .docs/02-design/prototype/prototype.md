@@ -4,11 +4,13 @@
 
 ## Local interactive demo
 
-Owner request, 2026-10-04: create a runnable synthetic demo using ui-ux-pro-max and the linked Claude artboard as a visual reference. [The standalone demo](../../../demo/README.md) uses the retained Next.js App Router/TypeScript stack and light/purple table/explanation/chart composition. [Design decisions](../../../demo/design-decisions.md) record the skill/reference choices. Run instructions are in the demo README.
+Owner request, 2026-10-04: create a runnable synthetic demo using ui-ux-pro-max and the linked Claude artboard as a visual reference. [The standalone demo](../../../demo/README.md) uses the retained Next.js App Router/TypeScript stack and purple-accented table/explanation/chart composition in light and dark themes. [Design decisions](../../../demo/design-decisions.md) record the skill/reference choices. Run instructions are in the demo README.
 
 The demo presents waves 0–5 with formula search/create/immutable versions/what-if, explicitly synthetic analytical illustration and missing reasons, lab fixture recording/reweigh/block states, typed embedded document processing, read-only references, public/account/admin paths and opt-in tutorial. Seven fixed role personas plus pending access follow the current action map. Exact input checks and immutable-state tests cover prototype behavior only.
 
-All records are invented and held in memory. `demo/` is separate from production `src/` under rule 85; its standalone build must never be imported into a production product build. There is no Go API, PostgreSQL, real authentication/consent/rights/log service, scanner, approved chemical or regulatory model. Print/text/JSON previews are demonstrators, not the official PDF deliverables. Draft legal text, sample measurements, charts and mock MFA are not evidence of acceptance, measurement, safety or authorization.
+Owner request, 2026-10-04: add a top-bar light/dark switch to the standalone demo. Only the appearance value is retained in browser local storage; it is applied before paint and survives refresh/reset. This prototype addition does not change the production MVP deferral of dark mode.
+
+All workflow records are invented and held in memory. `demo/` is separate from production `src/` under rule 85; its standalone build must never be imported into a production product build. There is no Go API, PostgreSQL, real authentication/consent/rights/log service, scanner, approved chemical or regulatory model. Print/text/JSON previews are demonstrators, not the official PDF deliverables. Draft legal text, sample measurements, charts and mock MFA are not evidence of acceptance, measurement, safety or authorization.
 
 Current coverage and missing implementation are mapped to FR IDs in the demo README. Domain/legal/security readiness gates remain unchanged. Final brand/copy, full bilingual terminology, approved scientific result charts/error budgets and lab PDFs still require review.
 
