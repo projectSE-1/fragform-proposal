@@ -11,6 +11,7 @@ import {AccountPage, AdminPage, TutorialPage, PublicPage, AuthPage} from './acce
 import {PersonaSwitcher} from './persona-switcher';
 import {Dropdown} from './dropdown';
 import {ThemeToggle} from './theme-toggle';
+import {PresentationGuide} from './presentation-guide';
 const navItems:{page:Page;icon:string;en:string;th:string;group:string}[]=[
   {page:'dashboard',icon:'grid',en:'Overview',th:'ภาพรวม',group:'workspace'},
   {page:'formulas',icon:'flask',en:'Formula library',th:'คลังสูตร',group:'workspace'},
@@ -85,6 +86,7 @@ export default function DemoApp(){
     </aside>
     <header inert={mobileNav} className="topbar"><div className="topbar-left"><button ref={menuRef} className="icon-button mobile-menu" aria-label={t('Open navigation','เปิดเมนู')} aria-expanded={mobileNav} onClick={()=>setMobileNav(!mobileNav)}><Icon name="menu"/></button><span className="breadcrumb">{t('Workspace','พื้นที่ทำงาน')}<span>/</span><strong>{page==='editor'?t('Formula workspace','พื้นที่สูตร'):current?t(current.en,current.th):page==='auth'?t('Access walkthrough','ทดลองเข้าสู่ระบบ'):t('About','เกี่ยวกับระบบ')}</strong></span></div><div className="topbar-actions"><ThemeToggle/><button className="locale-button" onClick={()=>setLocale(locale==='en'?'th':'en')} aria-label={t('Switch language to Thai','เปลี่ยนภาษาเป็นอังกฤษ')}><Icon name="globe" size={15}/>{locale==='en'?'EN':'TH'}</button><button className="icon-button reset-button" aria-label={t('Reset demo','รีเซ็ตเดโม')} title={t('Reset demo','รีเซ็ตเดโม')} onClick={reset}><Icon name="refresh" size={18}/></button><PersonaSwitcher/></div></header>
     <main inert={mobileNav} id="main-content" className="main-content" ref={mainRef} tabIndex={-1}><div className="demo-ribbon"><span><span className="demo-dot"/>{t('INTERACTIVE MVP','เดโม MVP')}<span className="ribbon-divider">/</span>{t('Synthetic data · changes reset on refresh','ข้อมูลจำลอง · รีเฟรชแล้วข้อมูลกลับค่าเริ่มต้น')}</span><div className="ribbon-actions"><Dropdown className="preview-select" aria-label={t('Preview display state','ทดลองสถานะหน้าจอ')} value={viewState} onValueChange={value=>setViewState(value as 'ready'|'loading'|'error')}><option value="ready">{t('Ready view','หน้าจอพร้อม')}</option><option value="loading">{t('Loading preview','ตัวอย่างกำลังโหลด')}</option><option value="error">{t('Error preview','ตัวอย่างข้อผิดพลาด')}</option></Dropdown><button onClick={()=>setTourInfo(true)}>{t('What you can try','ลองอะไรได้บ้าง')}<Icon name="info" size={14}/></button></div></div>
+      {viewState==='ready'&&<PresentationGuide/>}
       <div className="page-content" key={epoch} hidden={viewState!=='ready'}>
         <div hidden={page!=='dashboard'}><Dashboard/></div>
         {can(role,'read')&&<><div hidden={page!=='formulas'}><FormulaLibrary/></div><div hidden={page!=='editor'}><FormulaEditor key={`${selectedId}-${editorEpoch}`}/></div><div hidden={page!=='lab'}><LabPage/></div><div hidden={page!=='compliance'}><CompliancePage/></div><div hidden={page!=='references'}><ReferencesPage/></div></>}
