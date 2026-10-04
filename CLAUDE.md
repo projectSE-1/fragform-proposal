@@ -4,6 +4,8 @@
 
 **AI Perfumery Engine** — ระบบผู้ช่วยคำนวณและออกแบบกลิ่นน้ำหอมด้วยฟิสิกส์เคมี. A calculation engine (100-material dataset; synergy, masking, evaporation, threshold, and material-group rules) shown on a dashboard, wrapped in accounts, saved formulas, evaluation panels, and agreements.
 
+**Current scope (owner instruction, 2026-10-04):** retain Honney's Next.js/TypeScript + Go/Gin + PostgreSQL/sqlc/pgx stack; adopt the pinned frontend repository's MVP waves 0–5 (account/MFA, formula creation/versioning/analysis, lab weighing, compliance documents, public pages and opt-in tutorial/static mascot). Panels, production approvals and AI chat remain deferred. Scope approval does not approve missing domain rules, legal text or external infrastructure. Source mocks and placeholders are not implementation evidence.
+
 ## Documentation map — read before acting
 
 | Need to know... | Read |
@@ -11,8 +13,12 @@
 | Background/product context (**not** authoritative) | `.docs/00-context/project-context.md` |
 | What the supplied dataset contains (structure, not values) | `.docs/00-context/dataset-structure.md` |
 | Approved requirements | `.docs/01-requirements/backlog.md` |
+| Current MVP scope, source pin and historical scope replacement | `.docs/02-design/mvp-scope.md` |
+| Retained Honney technology stack and unselected optional libraries | `.docs/02-design/tech-stack.md` |
+| Adapted REST contract and local rights/logging extensions | `.docs/02-design/api-contract.md`, `.docs/02-design/api/openapi.yaml` |
 | Approved design (features, journeys, prototype, diagrams) | `.docs/02-design/` |
 | Database schema design for the MVP formula view | `.docs/02-design/data-model.md` |
+| Calculation engine: result contract, pipeline, engine decisions, build order | `.docs/02-design/calculation-engine.md` |
 | Roles, permissions, org isolation | `.docs/02-design/roles-permissions.md` |
 | Legal/compliance rules (authoritative) | `.docs/03-compliance/rule.md` |
 | Legal requirements traced from W2 | `.docs/03-compliance/legal-requirements.md` |

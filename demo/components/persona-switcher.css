@@ -1,0 +1,148 @@
+/* AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted. */
+.persona-switcher {
+  position: relative;
+  margin-left: 3px;
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+.persona-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 216px;
+  min-height: 52px;
+  padding: 8px 12px 8px 9px;
+  border: 1px solid var(--control-border);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: left;
+  transition: background .16s, border-color .16s, box-shadow .16s;
+}
+.persona-trigger:hover, .persona-trigger.is-open {
+  background: var(--surface-alt);
+  border-color: var(--control-hover);
+  box-shadow: var(--shadow);
+}
+.persona-trigger-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--purple);
+  background: var(--purple-soft);
+  flex-shrink: 0;
+}
+.persona-trigger-copy {flex: 1; min-width: 0;}
+.persona-trigger-label {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  font-weight: 650;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.persona-trigger-copy strong {display: block; font-size: 12px; line-height: 1.5; color: var(--ink);}
+.persona-chevron {color: var(--muted); transition: transform .16s;}
+.persona-trigger.is-open .persona-chevron {transform: rotate(180deg);}
+.persona-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 328px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100dvh - 96px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: 16px;
+  box-shadow: var(--popover-shadow);
+  animation: persona-reveal .16s ease-out;
+}
+.persona-popover-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 13px;
+  flex-shrink: 0;
+}
+.persona-popover-heading strong {font-size: 14px; font-weight: 650;}
+.persona-popover-heading p {margin: 3px 0 0; font-size: 11px; color: var(--muted);}
+.persona-demo-badge {
+  padding: 3px 6px;
+  background: var(--purple-soft);
+  border-radius: 5px;
+  color: var(--purple-dark);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .8px;
+  margin-top: 2px;
+}
+.persona-options {padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; scrollbar-width: thin;}
+.persona-option {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 58px;
+  padding: 9px 10px;
+  margin: 2px 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  transition: background .12s, border-color .12s;
+}
+.persona-option.starts-group {margin-top: 10px;}
+.persona-option:hover {background: var(--subtle);}
+.persona-option:focus-visible {outline: 2px solid var(--focus); outline-offset: -2px; background: var(--subtle);}
+.persona-option.is-selected {background: var(--purple-soft); border-color: var(--notice-border);}
+.persona-option-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--surface);
+}
+.persona-option.is-selected .persona-option-icon {color: var(--purple-dark); border-color: var(--control-border);}
+.persona-option-copy {flex: 1; min-width: 0;}
+.persona-option-copy strong {display: block; font-size: 12px; line-height: 1.5;}
+.persona-option-copy small {display: block; font-size: 10px; line-height: 1.6; color: var(--muted);}
+.persona-option-check {display: grid; place-items: center; width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%;}
+.persona-option.is-selected .persona-option-check {background: var(--action); color: var(--on-primary);}
+.persona-popover-footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-alt);
+  color: var(--muted);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.persona-footer-dot {width: 5px; height: 5px; border-radius: 50%; background: var(--purple);}
+@keyframes persona-reveal {from {opacity: 0; transform: translateY(-4px);} to {opacity: 1; transform: translateY(0);}}
+@media (max-width: 800px) {
+  .persona-switcher {padding-left: 10px; margin-left: 0;}
+  .persona-trigger {width: 202px; min-height: 48px; padding-top: 6px; padding-bottom: 6px;}
+}
+@media (max-width: 520px) {
+  .persona-switcher {padding-left: 0; border-left: 0;}
+  .persona-trigger {width: 184px; gap: 8px; padding-right: 10px;}
+  .persona-trigger-icon {width: 30px; height: 30px; border-radius: 9px;}
+  .persona-trigger-label {font-size: 7px; letter-spacing: .8px;}
+  .persona-trigger-copy strong {font-size: 11px;}
+  .persona-popover {top: calc(100% + 10px); max-height: calc(100dvh - 88px);}
+}
+@media (max-width: 360px) {
+  .persona-trigger {width: calc(100vw - 190px);}
+  .persona-trigger-icon {display: none;}
+}

@@ -1,8 +1,12 @@
+<!-- AI Perfumery Engine project documentation; ownership follows the owner's existing agreement. No new licence is granted. -->
 # AI Perfumery Engine — Legal & Compliance Rules (rule.md)
 
 **Company / Product:** AI Perfumery Engine — ระบบผู้ช่วยคำนวณและออกแบบกลิ่นน้ำหอมด้วยฟิสิกส์เคมี
 **Course:** 1305493 SE Case Studies, 1/2569 — Week 2 in-class case
 **Status:** Living document. Read this before writing any code that touches user data or user actions.
+**Updated:** 2026-10-04 — owner-directed MVP revision: retain Honney's stack and adapt the linked frontend's MVP and stronger engineering controls. Rules 1–63 keep their existing numbering; rules 64–90 below are project controls, not additional statutory claims.
+
+**Baselines:** [MVP scope](../02-design/mvp-scope.md) · [Honney technology stack](../02-design/tech-stack.md) · [backlog](../01-requirements/backlog.md). The source frontend is a design/mock reference at commit `aa572abaede14c11796a1551434858171eb37363`, not an implemented or legally validated service. This revision retains the W2 legal research; it does not independently verify current law or approve the source's draft legal text.
 
 ---
 
@@ -31,6 +35,14 @@ saved formulas, evaluation panels and agreements** — that is where the law bit
   writing first**. Silent adoption of a new SaaS/model provider is a breach.
 - Every generated file must carry the ownership header agreed with the owner; the agent must not add
   its own licence file (MIT/Apache) to this repo.
+
+### 0.2 MVP obligations and readiness
+
+Public signup creates a pending account. It does not grant access to formulas, reference data, lab records or other owner IP. Personal-data writes, including pending signup records, still require consent evidence before the write. Public pages show static approved content only.
+
+Authentication ships with consent evidence, own-data view/correction/erasure, local access-log writing, restricted log querying/export, retention, backup/restore and incident controls (rules 1–40). Deferring the source's full X4-S6 audit dashboard does **not** defer rule 38's restricted query/export capability or any mandatory log control. An admin-handled deletion request alone does not satisfy rule 11's working erasure endpoint.
+
+The scope decision does not approve a production regulatory dataset, chemical model, uncertainty tier, weighing tolerance, external service or privacy notice. Where these are unresolved, the affected implementation task remains unready and the system must return `insufficient data` rather than use source fixture values. Sensitive-personal-data features remain outside this MVP and subject to rules 7–10.
 
 ---
 
@@ -105,8 +117,12 @@ access / correct / delete · extra protection for sensitive data (health, religi
 
 **Access control, breach, notice**
 
-21. Every read of personal data must be role-checked server-side; a perfumer may read only their own profile
-    and their own formulas. Hiding a button on the client is not access control.
+21. Every read of personal data must be permission-checked server-side. A user may read their own profile;
+    reading another person's data requires the documented administrative permission and rule 22's log.
+    Formula access requires both an action permission and a record check against the active organisation
+    and any narrower ownership restriction in `roles-permissions.md`. An authorised lab user may read
+    permitted formulas in that organisation, including formulas created by another authorised lab user;
+    signup, a client-supplied organisation id, or hiding a button never grants that access.
 22. If an admin views another user's personal data, the system must write an access record
     (who, whose data, when, why).
 23. If the system detects a personal-data breach, it must alert the owner immediately and support notifying
@@ -210,6 +226,10 @@ signer-controlled, alteration-detectable records (§26) · CA duties if you ever
     - exporting or transferring the material dataset,
     - granting another account admin or dataset-read rights,
     - deleting a user account or a formula's version history.
+    This control applies whenever an included high-risk action is performed, even if it is not labelled
+    as an agreement screen. Administrative actions on other users require fresh MFA step-up under rule 80.
+    Formula history remains immutable under the MVP; listing a high-risk act here does not authorise
+    a history-deletion feature or bypass its retention/ownership controls.
 48. The agent must not apply one signature standard to every feature; a per-action risk level belongs in the
     design doc before the code is written.
 
@@ -250,23 +270,199 @@ so the Air Canada rule applies: **we own what our system says.**
 60. Any generative/LLM feature must be labelled as a suggestion, must cite the dataset rows it used, and must
     never invent a material, a CAS number, a concentration limit, or a safety claim.
 61. Every safety-relevant output must carry the disclaimer agreed with the owner and a human-override path.
+    Human review may correct inputs or escalate a disputed rule; it must not bypass a sourced hard block
+    or present an inconclusive result as safe (rules 66, 69, 84).
 62. The core workflow (browse materials, record a formula) must still work when the AI/model service is down.
 63. Users must have a feedback channel to report a wrong result, and every report must be logged as a defect.
 
 ---
 
-## 5. Legal requirements for the W3 backlog
+## 5. Legal requirements traced from W2
 
 | ID | Law | Requirement | Priority |
 |---|---|---|---|
 | **LR1** | PDPA | If we store a user's name/email or any panel-tester record, we take consent first and ship view / correct / delete as real features; sensitive fields need the owner's written plan. | Must |
 | **LR2** | CCA §26 | Keep an append-only access log (who, when, from where, what action) ≥90 days, including ≥90 days after an account ends. | Must |
-| **LR3** | ETA §9/26 | Every "I agree" / approval is recorded with user id, timestamp, text version and hash; high-value acts (IP assignment, production release, dataset export) require re-authentication. | Must |
+| **LR3** | ETA §9/26 | Every "I agree" / approval is recorded with user id, timestamp, text version and hash; included high-risk actions require re-authentication even without a separate agreement screen. | Must |
 | **LR4** | ETDA principles | Explainable results, "insufficient data" instead of guesses, human override, and a core workflow that works without the model. | Should |
 | **LR5** | Owner IP | Dataset, rules and formulas never leave approved infrastructure; the repo stays private. | Must |
 
-**Backlog note:** LR1–LR3 go into the same sprint as login and "save a formula". Compliance sits inside the core
-workflow, not in a hardening sprint at the end.
+**Backlog note:** LR1–LR3 go into the same sprint as signup/login and the first relevant write. LR3 is active
+for signup consent/terms, consent changes, privileged account actions and erasure in this MVP. Production
+approval and IP-assignment screens remain deferred; their absence does not make LR3 conditional. LR4 keeps
+its W2 priority, while the local CER-001–005 requirements make the applicable result controls Must.
+Compliance sits inside the core workflow, not in a hardening sprint at the end.
+
+---
+
+## 6. Adopted MVP and engineering controls (rules 64–90)
+
+These rules adapt the source's presentation, access, lab and collaboration controls to **Next.js + TypeScript,
+Go + Gin, PostgreSQL, sqlc + pgx**. They do not adopt its Vite/Mantine/FastAPI implementation or source-specific
+dependency versions. Traceability uses local FR/CER/SEC/PRIV/NFR IDs in the backlog.
+
+### Result honesty and domain boundaries
+
+64. The browser is a presentation/input layer. Quantities, percentages, totals, conversions, uncertainty,
+    compliance verdicts and reportable rounding come from the Go service and approved engine. A shared
+    formatter displays the server's decimal precision and units; locale may change separators and labels,
+    never the numeric value. Client format validation does not replace server business validation.
+65. Every estimated/reportable result must include its interval, confidence/tier, unit, display precision
+    and provenance reference (`ReportedValue`). Exact, entered or declared quantities use `Quantity` and
+    must not receive a fabricated interval. An uncertain computed result must not be relabelled exact merely
+    because the source schema allows it. Unapproved tier definitions or unquantified uncertainty yield a
+    missing/insufficient-data state, not a synthetic confidence score.
+66. `MissingValue` must have an explicit reason such as not measured, no data, out of scope, unquantified or
+    calibration required. Missing, zero, loading and empty are distinct. Compliance has distinct pass,
+    exceed and inconclusive states; neither a central estimate nor missing evidence can turn inconclusive
+    into pass. Preserve the source status and reason instead of hiding the affected result.
+67. Results identify formula version, input/context, model/rule/dataset versions, server evaluation time and
+    the seed when the approved engine uses one. An input change and a model/version change have separate
+    indicators. A stale result is marked unavailable/stale and cannot be treated as a current result;
+    fresh analysis is required. Sampling and seed behavior require an approved model, not an LLM.
+68. Every result and error-budget contribution must navigate to **complete** provenance, accessible as a
+    list/tree in this MVP even though a graphical DAG viewer is deferred. Profile A and Profile B must
+    preserve their explicit physical/context inputs, equations and assumptions and be presented side by
+    side where the model supports them, with uncertainty bands for curves. Missing definitions/inputs or
+    source rows remain insufficient data; the UI must not invent either profile.
+69. A prohibited-material or lab hard block has no bypass, dismissal or override for any role. Enforce it
+    in Go as well as the UI and show its rule/source/version and remediation. Domain thresholds, scope gates
+    and their action effects require approved evidence; source fixture thresholds are not production rules.
+70. Do not silently normalise formula mass percentages to 100%. The server validates declared totals and
+    returns the actual shortfall/excess for correction before persistence. User-entered decimals travel as
+    decimal strings preserving entered precision; displayed percentage, mass and total derive from the
+    same server result. A what-if result is distinct from an explicitly saved immutable formula version.
+71. Unit conversions need approved source inputs and uncertainty. A volume-to-mass conversion needs density
+    and its uncertainty; drops need measured calibration for the material/instrument pair. Do not use a
+    universal drops-per-millilitre constant. Unsupported units or absent calibration return insufficient
+    data and cannot produce a ready-to-use mixing instruction.
+
+### UI, access and account controls
+
+72. Fail closed on 401/403/409/422/5xx, timeout or unavailable analysis. Do not show a previous response as
+    current success, infer a missing number, or claim a write was not saved when its outcome is unknown.
+    Show an appropriate error/state and reference code with safe retry/reconciliation; never disclose
+    stack traces, SQL, credentials or personal data. Each screen has loading, success, empty and error states.
+73. Render document/user text as text, never executable HTML. Reject unsafe link schemes; externally
+    supplied links permit only reviewed HTTP(S) destinations. Server-side file validation and safe download
+    headers remain required; client sanitisation does not authorise a resource or make a file safe.
+74. No secrets in frontend source, bundle, commits, screenshots or reports. Do not persist tokens, formulas,
+    personal data or results in browser local storage or a shared Next.js cache/public build. Session cookies
+    are HttpOnly and securely server-controlled; CSRF/step-up tokens stay in memory. Local preferences may
+    contain only non-confidential values such as pre-login language. A leaked secret is reported and rotated,
+    not merely deleted from a later commit.
+75. All user-facing copy has TH/EN translations; scientific vocabulary requires a confirmed glossary.
+    Numeric precision stays identical between languages. Inputs have labels, keyboard access and visible
+    focus; states use text/icons as well as colour. Respect reduced-motion settings and test desktop/mobile
+    layouts and accessibility. Shared theme/components enforce consistent design without requiring the
+    source's component library. Font/icon/image assets are locally bundled with verified usage rights.
+76. Tutorials are opt-in, skippable and reopenable; every sandbox screen is labelled demo. They do not write
+    real formulas, analyses, lab measurements or grants; only own tutorial progress may be persisted.
+    Mascot tips are static and do not invent numbers or safety claims. Tutorial/game effects never cover
+    MFA, a block, an error or required confirmation; rewards stay in the tutorial and there is no leaderboard.
+77. Signup and invitations require the current versioned consent/terms evidence before writing personal
+    account data. Separate deliberate unticked controls record their purpose and document versions;
+    continued use is not consent. A newly created account has no domain role or automatic permission.
+    Pending users may access public content, authentication and their own account/rights only; a role is
+    granted through the authorised administrative flow, never selected at signup.
+78. Login, signup, resend-verification and reset flows do not disclose whether an account exists. Email
+    verification/reset/invitation links are single-use and expiring; emails carry links, never passwords,
+    formulas or computed results. Password minimums, throttling and token/session expiry are server policy
+    values to be settled locally, not copied from mock examples. Tokens are not printed in production logs
+    or browser consoles; resetting/changing credentials revokes the other sessions as designed.
+79. Go verifies every session, MFA requirement and CSRF token on state changes. A role that requires MFA
+    cannot skip enrolment or turn MFA off while holding that role. Clearing frontend state or selecting
+    another tenant never satisfies an auth/MFA gate. Keep the active organisation in server-verified context
+    and invalidate confidential client state on logout, revoked permission or context change.
+80. Only the fixed role identifiers and action/record mapping in `roles-permissions.md` may be used. Refuse
+    self-grants server-side and record the security event. Administrative actions on other accounts need
+    fresh MFA step-up, an explicit reason and an append-only access event; a client-submitted grant, role
+    name or step-up token is never trusted without verification. Cross-organisation administrative access
+    requires a separately permitted explicit action and logging, not a permanently open all-tenant view.
+81. Own-profile correction, data export and executable erasure stay available without a domain role under
+    rule 11; ownership is checked in Go. An optional request/review workflow must not replace these real
+    rights endpoints. Deletion and consent withdrawal keep only the documented minimum log/signature evidence
+    and pending backup purge, with re-authentication and retention exceptions explained to the requester.
+
+### Lab, documents and production evidence
+
+82. Each weighing requires the user's explicit instrument choice and verified calibration/eligibility;
+    no silently chosen instrument. The server enforces the instrument's input precision and returns its
+    uncertainty/verdict. A valid actual measurement is retained even when its verdict is BLOCK; BLOCK
+    prevents the next step. Reweighing appends a reason-linked record, never overwrites history. A blocked
+    step resumes only through the approved pre-dilution/remediation flow; numeric WARN/BLOCK tolerances,
+    calibration and dilution rules remain gated until evidenced and approved locally.
+    Log weighing/reweigh/pre-dilution actions as metadata without measured contents or formula bodies.
+83. Document uploads are typed and server-checked: CoA/GC-MS bind to a lot; SDS/TDS/IFRA certificate of
+    conformity/allergen declarations bind to a SKU. Reject an unsupported type or wrong subject. Validate
+    content type/size, quarantine unsafe/unscanned files and show processing/failure states. Authorisation
+    and record checks also protect storage/download paths. A new SDS is retained alongside the earlier
+    version with provenance rather than overwriting it. Scanner/storage services need existing IP/privacy
+    approval; uploading a file does not itself approve the file's scientific or legal content.
+    Log document creation/versioning/upload/download actions as metadata without document contents.
+84. Compliance findings remain grouped by supported jurisdiction and applicable category/rule version;
+    no single unsupported worldwide-compliant claim. The owner-approved disclaimer is versioned source
+    content shown with safety views and included safety findings in authorised exports. Every such finding
+    cites its underlying rule/source; incomplete citation is `data_missing` and blocks a safety/compliance
+    export. R2 regulatory export/notification stays deferred in the MVP; this control does not add it.
+85. Source mocks, tutorial datasets and demo legal copy are labelled synthetic and separated from real
+    services/data. A mock response is evidence of a UI scenario only, never proof of an implemented engine,
+    valid identity check, successful scan, measurement or compliance. Mocks cannot enter production builds
+    or act as a fallback for an unavailable real service. No real owner dataset/formula/personal record is
+    added to a fixture, screenshot, public page or unapproved AI prompt.
+
+### Supply chain, traceability and delivery
+
+86. Before adding a package/action/tool, verify its exact name, version, official registry/repository,
+    maintainer history, install/lifecycle scripts, transitive risks, licence and compatibility from primary
+    sources; record the check. Do not install a name just because an AI recommends it or run downloaded code
+    by piping it into a shell. Use free tools first; paid or AGPL dependencies require an explicit owner
+    decision. Preserve licence obligations for third-party assets without adding a new licence to owner IP.
+87. Pin reviewed dependency versions and maintain reproducible lock/module checksums for Next.js and Go;
+    review upgrades with their compatibility/security evidence separately from feature work. Pin CI actions
+    to reviewed commit SHAs. Upstream version tables and claims of previous testing do not count as local
+    verification. Select commands/libraries for `tech-stack.md`, not the source's Vite/FastAPI scripts.
+88. Start significant implementation only when the task is Ready: problem/user/behavior, local acceptance
+    criteria, permission/record boundary, engine/API contract, applicable rules and no unresolved domain/legal
+    decision. Maintain backlog → design → compliance → implementation → meaningful test traceability.
+    When information is missing or sources conflict, record `insufficient information` and resolve the
+    local decision; unavailable source PDC/INV references do not supply a decision or waived gate.
+89. Changes update affected local backlog/design/rules and the reviewed API contract, generated types,
+    Go handlers and mocks together. Do not hand-edit generated types or silently introduce incompatible
+    shapes; version a breaking contract. Local law/rules/backlog retain the AGENTS.md authority order;
+    the source repo's separate-repository/copy-only policy is adapted to this repository, not imposed here.
+90. Work is reviewed through focused branches/PRs with the requirement, validation and applicable security
+    changes explained; existing owner-authorised edits on Honney remain valid. Do not push/force-push directly
+    to the protected integration branch. Done means acceptance criteria met and meaningful Go/frontend/
+    contract/browser/security checks pass, with review/merge evidence for delivered changes. CI must not
+    report skipped application tests as proof that an application works. Keep screenshots/data synthetic.
+
+---
+
+## 7. Source-rule adoption record
+
+**Source:** `sattasarasadaw-crypto/ai-perfumery-engine-frontend` at
+`aa572abaede14c11796a1551434858171eb37363` (2026-10-04 review). References below name inspected source
+paths/sections; their upstream requirement numbers are not local requirement IDs.
+
+| Decision | Source and useful rule | Local treatment / reason |
+|---|---|---|
+| Retain local | Existing rules 1–63; W2 LR1–LR5 | Keep consent-before-write, minimisation, real rights endpoints, immutable agreements, local append-only logs, incident/backup/retention and owner-IP approval. Clarify rule 21's authorised org scope and unconditional rule 47 step-up. |
+| Adapt | `docs/handoff/README.md` §2 rules 1–8; `api/README.md` §4; `api/openapi.yaml` `info.description` | Rules 64–66, 72–75, 77–80: server-owned numbers, honest reported/exact/missing types, deny-by-default domain access, safe errors, no secrets, TH/EN and XSS controls. Go is the authority. |
+| Adapt | `docs/wireframes/R1-analyze-formula-workspace.md` §0 | Rules 67–70: error budget → complete provenance, no silent normalisation, Profile A/B with intervals, seed/version/input distinctions. Complete list/tree replaces a deferred graphical DAG. |
+| Adapt | `docs/wireframes/R2-comply-compliance-panel.md` §0 | Rules 69, 83–84: jurisdiction separation, inconclusive state, hard blocks, typed documents, append-only SDS and cited/versioned disclaimer. All regulatory values need approved sources; deferred R2-S4–S6 remain deferred. |
+| Adapt | `docs/wireframes/X1-login-mfa-access.md` §0; `X4-admin-users-roles-audit.md` §0; `X6-account-signup-self-service.md` §0 | Rules 77–81: non-enumerating authentication, no self-grants, pending users' own-account exception, enforced MFA, explicit cross-org administration, consent and expiring links. Minimal own rights/log controls remain mandatory. |
+| Adapt | `docs/wireframes/X3-manual-weighing-per-item-balance.md` §0; `J15-mixing-sheet-unit-bridge.md` §0 | Rules 71, 82: explicit calibrated instrument, preserve blocked measurements, no bypass, append-only reweigh, sourced density/drop calibration. Do not import the source's numerical tolerances or unmerged batch-instrument fallback. |
+| Adapt | `docs/wireframes/X7-public-pages-onboarding-tutorial.md` §0 | Rules 76, 85: static public content, opt-in sandbox, static mascot, no live-data games or excessive claims, reduced motion. |
+| Adapt | `CONTRIBUTING.md` §§2, 3.6, 7–10, 12–13; `api/README.md` §5 | Rules 75, 86–90: language/accessibility, supply-chain checks, pinned dependencies/actions, contract synchronisation, focused review, CI, Ready/Done and written decisions. Check tools against the Honney stack when implementing. |
+| Do not adopt | `CONTRIBUTING.md` §§0, 3–6, 11; `docs/handoff/README.md` §§3–4 | Vite/Mantine, FastAPI/SQLAlchemy, exact package/runtime versions, source commands and separate-repo ownership conflict with the owner's retained Honney stack. No package/version testing claim is copied. |
+| Do not adopt | `api/README.md` §§2, 7; `docs/handoff/README.md` §9 H11–H12; `content/legal/*` drafts | Fixture limits, toy analysis/confidence, draft privacy terms and references to absent PDC/internal specs are unverified source material, not approved local domain/legal rules. Public legal copy still needs owner identity/contact/retention and review before real use. |
+| Do not adopt | `docs/handoff/README.md` §1 audit deferral; `X6-account-signup-self-service.md` §0(8); `X4-admin-users-roles-audit.md` §0(6) | Do not defer mandatory log writing/query/backup/incident controls, replace rule 11 erasure with only an admin request, or let a general signer-export ban remove rule 52's right to receive their own signed copy. Restrict third-party/internal exports under the retained local rules. |
+
+**Remaining owner/domain inputs:** approved infrastructure and external-service list; ownership-header text;
+controller/contact and reviewed privacy/terms/retention text; initial role-holder/bootstrap approval and operational MFA/session policy;
+official regulatory/category mappings and disclaimers; chemical/profile models, uncertainty tiers, instruments,
+calibration and WARN/BLOCK/pre-dilution thresholds. The MVP scope alone does not resolve these values.
 
 ---
 
