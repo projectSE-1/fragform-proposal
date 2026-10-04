@@ -25,6 +25,8 @@
 
 The skill's automatic-saving suggestion is not used for formulas: the local contract requires explicit immutable saves. The static helper sits after the main content and does not cover critical controls. Full bilingual content/terminology and final brand/legal/domain copy remain review tasks; this prototype translates navigation and principal workflow actions, with some technical fixture explanations in English.
 
+Owner icon feedback, 2026-10-04: forward/open indicators use a compact rounded right chevron instead of a long arrow. The shared inline SVG keeps the existing sizes, theme colors, accessible button names and actions.
+
 ## Persona menu refinement
 
 Owner screenshot feedback on 2026-10-04 identified the browser-native role dropdown as visually inconsistent. Replace this specific branded control with an opaque, plum-accented menu: role icons, short scope descriptions and a selected checkmark. Keep the eight existing role IDs and the existing guarded role-change function; this changes presentation only. No additional dependency is needed.

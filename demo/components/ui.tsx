@@ -13,7 +13,7 @@ export function Icon({name, size=20, className=''}:{name:string;size?:number;cla
     users:<><circle cx="9" cy="8" r="3.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2m1-16a3.5 3.5 0 0 1 0 7m2 4a5 5 0 0 1 3 5"/></>,
     spark:<><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></>,
     plus:<path d="M12 5v14M5 12h14"/>,
-    arrow:<path d="M4 12h16m-6-6 6 6-6 6"/>,
+    arrow:<path d="m9 6 6 6-6 6"/>,
     back:<path d="M20 12H4m6-6-6 6 6 6"/>,
     down:<path d="m6 9 6 6 6-6"/>,
     check:<path d="m5 12 4 4L19 6"/>,
