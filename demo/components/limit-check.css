@@ -1,9 +1,12 @@
 /* AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted. */
-.limit-chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 9px;font-size:11px;font-weight:600;line-height:1.5;white-space:nowrap;border:1px solid transparent}
+.limit-chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:600;line-height:1.5;white-space:nowrap;border:1px solid transparent}
 .limit-chip-green{color:var(--green);background:var(--green-soft);border-color:var(--green-line)}
 .limit-chip-red{color:var(--red);background:var(--red-soft);border-color:var(--red-line)}
 .limit-chip-amber{color:var(--amber);background:var(--amber-soft);border-color:var(--amber-line)}
 .limit-chip-neutral{color:var(--purple-dark);background:var(--purple-soft)}
+/* Exceed is filled in the table and summary so it differs from a pass by luminance, not only hue.
+   Supplier certificate chips stay pale so they cannot read as the material's verdict. */
+.limit-row-button .limit-chip-red,.limit-summary .limit-chip-red{background:var(--danger-action);color:var(--on-danger);border-color:var(--danger-action);font-weight:700}
 .limit-row-button{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:4px 2px;border:0;background:none;color:var(--muted);border-radius:8px}
 .limit-row-button:hover .limit-chip{filter:brightness(.97);text-decoration:underline}
 .limit-mock-tag{display:inline-flex;align-items:center;border-radius:5px;padding:3px 7px;font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--purple-dark);background:var(--purple-soft)}
@@ -12,7 +15,10 @@
 .limit-summary-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
 .limit-summary-heading .muted{font-size:12px}
 .limit-summary-counts{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;margin:10px 0 8px;padding:0}
-.limit-summary-counts li{display:flex;align-items:center;gap:6px;font-size:12px}
+.limit-summary-counts li{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:13px}
+.limit-summary-figure{white-space:nowrap;font-variant-numeric:tabular-nums}
+.limit-summary-cause{display:flex;gap:6px;align-items:flex-start;margin:0 0 8px!important;font-size:13px;color:var(--ink)}
+.limit-summary-cause svg{color:var(--amber);flex-shrink:0;margin-top:3px}
 .limit-summary p{margin:0;line-height:1.6}
 
 .limit-dialog{display:flex;flex-direction:column;gap:16px}
@@ -29,6 +35,7 @@
 .limit-result-amber{background:var(--amber-soft);border-color:var(--amber-line)}
 .limit-result-head{display:flex;align-items:flex-start;gap:12px}
 .limit-result-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;flex-shrink:0;background:var(--surface)}
+.limit-dialog .limit-result h3{font-size:20px;line-height:1.4}
 .limit-result-green .limit-result-icon,.limit-result-green h3{color:var(--green)}
 .limit-result-red .limit-result-icon,.limit-result-red h3{color:var(--red)}
 .limit-result-amber .limit-result-icon,.limit-result-amber h3{color:var(--amber)}
@@ -37,15 +44,24 @@
 .limit-result-detail{font-size:13px;line-height:1.7;margin:10px 0 0;color:var(--ink);overflow-wrap:anywhere}
 .limit-result-detail p{margin:0 0 6px}
 .limit-result-detail p:last-child{margin-bottom:0;color:var(--muted)}
+.limit-edit-amount{margin-top:12px}
 
-.limit-meter{margin:16px 0 4px}
+.limit-meter{margin:14px 0 4px}
+.limit-meter-values{position:relative;height:20px;margin-bottom:4px}
+.limit-meter-value{position:absolute;white-space:nowrap;font-size:13px;font-weight:700;line-height:20px;font-variant-numeric:tabular-nums}
+.limit-meter-value-green{color:var(--green)}
+.limit-meter-value-red{color:var(--red)}
+.limit-meter-value-amber{color:var(--amber)}
 .limit-meter-track{position:relative;height:12px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
 .limit-meter-fill{position:absolute;inset:0 auto 0 0;border-radius:999px}
 .limit-meter-fill-green{background:var(--green)}
 .limit-meter-fill-red{background:var(--red)}
 .limit-meter-fill-amber{background:var(--amber)}
-.limit-meter-mark{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:var(--ink);border-radius:1px}
-.limit-meter-labels{position:relative;height:20px;margin-top:6px;font-size:11px;color:var(--muted)}
+.limit-meter-fill-split{border-radius:999px 0 0 999px}
+.limit-meter-excess{position:absolute;top:0;bottom:0;border-radius:0 999px 999px 0;background:repeating-linear-gradient(135deg,var(--red) 0 4px,var(--surface) 4px 7px)}
+/* 3px target marker with a surface halo stays visible on top of any fill, in both themes. */
+.limit-meter-mark{position:absolute;top:-6px;bottom:-6px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:1px;box-shadow:0 0 0 2px var(--surface)}
+.limit-meter-labels{position:relative;height:20px;margin-top:6px;font-size:12px;color:var(--muted)}
 .limit-meter-labels>span:first-child{position:absolute;left:0}
 .limit-meter-limit{position:absolute;transform:translateX(-50%);white-space:nowrap;font-weight:600;color:var(--ink)}
 
@@ -83,9 +99,12 @@
 /* The heading only receives programmatic focus after "Evaluate now"; it is not an interactive control. */
 .limit-result h3:focus,.limit-result h3:focus-visible{outline:none}
 .formula-limit-inline{display:none}
+.formula-material-panel{container:limit-table/inline-size}
 .limit-actual{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 .limit-actual .badge{margin-left:0;font-size:11px}
 
-@media(max-width:620px){.limit-figures{grid-template-columns:repeat(2,minmax(0,1fr))}.limit-disclosure dl{grid-template-columns:1fr;gap:2px}.limit-disclosure dd{margin-bottom:8px}.limit-summary{margin:0 16px 14px}}
-/* Phones: the chip moves under the material ID so the table keeps its previous width. */
-@media(max-width:600px){.formula-limit-col{display:none}.formula-limit-inline{display:block;margin-top:2px}.formula-limit-inline .limit-row-button{min-height:36px}}
+@media(max-width:620px){.limit-dialog .limit-result h3{font-size:18px}.limit-figures{grid-template-columns:repeat(2,minmax(0,1fr))}.limit-disclosure dl{grid-template-columns:1fr;gap:2px}.limit-disclosure dd{margin-bottom:8px}.limit-summary{margin:0 16px 14px}}
+/* When the composition panel is narrower than 700px (phones, and two-column desktops up to about
+   1365px) the chip moves under the material ID, so the table keeps its width. 700px fits the widest
+   chip state; the button keeps the demo's 44px target. */
+@container limit-table (max-width:700px){.formula-limit-col{display:none}.formula-limit-inline{display:block;margin-top:2px}}

@@ -77,7 +77,7 @@ Unlike the fixed Interaction MOCK report, this check is computed from the declar
 
 Every verdict names its single source; there is no combined FDA/IFRA verdict (FR-005, §7, and the 2026-10-04 decision to keep law and industry standard apart). The table column is labelled **Mock limit / เกณฑ์สมมติ** and the chips are relative to `DEMO-STD v1`, an IFRA-style fictional table. The dialog keeps the owner's "อย. / IFRA" title as the topic, and its result eyebrow names `DEMO-STD v1 (IFRA-style)`. A separate **Thai FDA (TH)** row states that no Thai FDA limit is mocked and stays insufficient data. Supplier certificates are reported per supplier with certificate-specific chips ("within / above certificate", "no certificate"). Where both list a material, the fictional certificate is never looser than the standard, and a sentence says which source governs is a domain decision.
 
-Presentation: each composition row gets a chip button (text + icon + colour, visible text inside the accessible name). On phones the chip moves under the material ID instead of adding a column. A summary with counts appears under the table after Evaluate. The dialog has a MOCK tag, a boundary notice and "ready to check" before evaluation. "Evaluate now" moves focus to the result heading. After evaluation it shows:
+Presentation: each composition row gets a chip button (text + icon + colour, visible text inside the accessible name). When the composition panel is narrower than 700px (phones, and two-column desktops up to about 1365px), the chip moves under the material ID instead of adding a column. A summary with counts appears under the table after Evaluate. The dialog has a MOCK tag, a boundary notice and "ready to check" before evaluation. "Evaluate now" moves focus to the result heading. After evaluation it shows:
 - a result card with a limit meter and the four figures (formula %, dilution, product %, mock maximum);
 - headroom, or the excess with a rounded-down maximum declared amount;
 - a "where do these numbers come from?" disclosure (snapshot, calculation, locator, comparison rule, origin);
@@ -85,3 +85,17 @@ Presentation: each composition row gets a chip button (text + icon + colour, vis
 - the unchanged "actual evaluation: insufficient data" row and official reading links that are not the source of the limits.
 
 Equal-to-limit counts as within only as a labelled demo choice. No near-limit band, hard block or save restriction is added, because FR-005 keeps those domain-gated. Mock results never enter saved versions or exports. Any edit clears the result until Evaluate runs again.
+
+## ui-ux-pro-max refinement of the mock limit check — 2026-10-04
+
+The owner asked for the ui-ux-pro-max skill to be used for this UI, installed if missing. The toolkit already sits in `.agents/skills/ui-ux-pro-max`, so it was also installed as a local Claude Code skill. This was a review of an existing component, so the skill's own guidance (Query Contract) selected focused domain searches over a new design system. The established plum system above stays. Verified results used: chart "bullet chart target threshold" (Performance vs Target / Bullet Chart: place the value and target text beside the bar, colour is supplementary, the target is a dark 3px marker); ux "color not only status", "live region status announcement" (contextual live badge updates), "error recovery path", "badge chip label wraps" (compact label overflow) and "touch target size"; react stack "modal accessible dialog" (manage focus, return it on close). An off-topic Next.js stack result and two off-topic hierarchy searches were not used.
+
+Three skill-guided audits (accessibility and feedback, layout/typography/colour, data display) ran in a real browser. A second reviewer checked each recommendation against this design system and the no-combined-verdict rule. Changes adopted:
+- The exceed chip is filled with the existing danger tokens in the table and summary, so it differs from a pass by luminance, not only by red or green hue. Chips are 12px. Supplier certificate chips stay pale.
+- The verdict heading is 20px (18px on phones). The source eyebrow stays above it, so DEMO-STD is named before the verdict.
+- The meter is a labelled bullet chart: the product value is printed above the bar, the over-limit segment is hatched, and the 3px limit marker has a surface halo.
+- The summary leads with exceeds and names the materials and figures, or states the input error when the formula is invalid. Screen readers hear one concise status phrase.
+- The exceed card has an "Edit <material> amount" action that closes the dialog and focuses that row's amount field. Every dialog state ends with a Close button.
+- The inline chip switches on a 700px container query, so 1024–1365px projectors no longer clip the column, and it keeps the 44px target.
+
+Rejected after review: putting the verdict above its source line (it would read as a Thai FDA verdict under the "อย. / IFRA" title), moving the phone-only Evaluate-now button, and a third copy of the difference in the figure tiles. No dependency, font, icon library or colour token was added.

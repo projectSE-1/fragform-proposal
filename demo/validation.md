@@ -113,3 +113,16 @@ The subsequent install reported Windows `EPERM` while unlinking the native Next 
   - Escape returns focus to the row button.
   - Export isolation was reviewed in code.
 - These are focused checks of a synthetic demo, not a regulatory, scientific or full accessibility validation.
+
+## ui-ux-pro-max refinement — 2026-10-04
+
+- `npm run typecheck` and `npm run build` passed. `npm test`: 12 passed, 0 failed. Logic is unchanged; the changes are presentation only.
+- Three skill-guided audits ran in current Chromium, each checked by a second reviewer: accessibility/feedback, layout/typography/colour, data display. 11 recommendations were adopted, several in modified form, and 3 were rejected. See design-decisions.md.
+- Browser checks after the change:
+  - Exceed chips are filled (white on danger: 6.31:1 light, 4.69:1 dark).
+  - The status phrase is "ผลตรวจเกณฑ์สมมติ: เกิน 1 ไม่มีเกณฑ์ 1 ผ่าน 2 จาก 4 รายการ". The summary names "Petal study 02 (6% > 5%)".
+  - "แก้สัดส่วนของ Petal study 02" closes the dialog and focuses `editor-amount-row-2`.
+  - A 41% first row shows the Thai total-error cause under the table and in the status phrase.
+  - Composition table overflow at 1024×768 drops to 0 px, from 62–101 px before.
+  - At 390×844 the inline chip button is 44 px tall. The table keeps its pre-feature 8 px scroll, and the page does not overflow.
+  - The meter shows the value label, a hatched over-limit segment and the haloed 3 px marker, in light and dark.

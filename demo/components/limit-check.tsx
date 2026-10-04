@@ -34,7 +34,10 @@ const inputErrorTh:Record<string,string>={
   'Enter a declared product dilution greater than 0 and no more than 100%.':'ใส่การเจือจางในผลิตภัณฑ์ที่มากกว่า 0 และไม่เกิน 100%',
   'Enter a positive decimal amount for every material.':'ใส่สัดส่วนเป็นทศนิยมที่มากกว่า 0 ให้ทุกวัตถุดิบ',
   'Use no more than 12 decimal places for this demo input.':'ใช้ทศนิยมไม่เกิน 12 ตำแหน่งในเดโมนี้',
+  'Select a demo vehicle and application.':'เลือกพาหะและการใช้งานของเดโม',
 };
+const localizeInputError=(message:string|null,locale:'en'|'th')=>message&&(locale==='th'?inputErrorTh[message]||message:message);
+
 const materialName=(id:string)=>materials.find(m=>m.id===id)?.name||id;
 
 function LimitChip({status,label}:{status:LimitStatus;label?:[string,string]}) {
@@ -57,31 +60,56 @@ export function LimitRowButton({draft,materialId,evaluated,onOpen}:{draft:Formul
   </button>;
 }
 
+// Most actionable state first, so an exceed is the first thing a presenter reads under the table.
+const summaryOrder:LimitStatus[]=['exceed','no_limit_defined','data_missing','pass'];
+
 export function LimitSummary({draft,evaluated}:{draft:FormulaVersion;evaluated:boolean}) {
-  const {t}=useDemo();
+  const {t,locale}=useDemo();
+  const findings=evaluated?draft.ingredients.map(item=>checkStandardLimit(draft,item.materialId)):[];
   const counts=evaluated?summarizeStandardLimits(draft):null;
-  return <div role="status" className={counts?'limit-summary':undefined}>{counts&&<>
-    <div className="limit-summary-heading"><span className="limit-mock-tag">MOCK</span><strong>{t('Mock limit check','ผลตรวจเกณฑ์สมมติ')}</strong><span className="muted">{demoLimitStandard.id} {demoLimitStandard.version} · {draft.category}</span></div>
-    <ul className="limit-summary-counts">{(Object.keys(counts) as LimitStatus[]).filter(status=>counts[status]>0).map(status=><li key={status}><LimitChip status={status}/><span>{counts[status]} {t(counts[status]===1?'material':'materials','รายการ')}</span></li>)}</ul>
-    <p className="small muted">{t('Open a row in the Mock limit column for the calculation. Fictional limits only; no Thai FDA or IFRA value. The actual evaluation stays insufficient data.','กดปุ่มในคอลัมน์เกณฑ์สมมติเพื่อดูการคำนวณ เกณฑ์ทั้งหมดเป็นค่าสมมติ ไม่ใช่ค่าของ อย. หรือ IFRA ผลประเมินจริงยังเป็นข้อมูลไม่เพียงพอ')}</p>
-  </>}</div>;
+  // A formula-wide input error makes every row data_missing; name the cause instead of only counting rows.
+  const cause=localizeInputError(findings.find(f=>f.missing==='invalid_input')?.inputError??null,locale);
+  const statuses=counts?summaryOrder.filter(status=>counts[status]>0):[];
+  // One concise status phrase for screen readers; the visual block below is static.
+  const phrase=!counts?'':cause?t(`Mock limit check not run: the formula input is not valid. ${cause}`,`ยังตรวจเกณฑ์สมมติไม่ได้: ข้อมูลสูตรไม่ถูกต้อง ${cause}`)
+    :t(`Mock limit check: ${statuses.map(s=>`${statusCopy[s].shortEn} ${counts[s]}`).join(', ')}, of ${findings.length} materials.`,`ผลตรวจเกณฑ์สมมติ: ${statuses.map(s=>`${statusCopy[s].shortTh} ${counts[s]}`).join(' ')} จาก ${findings.length} รายการ`);
+  const names=(status:LimitStatus)=>findings.filter(f=>f.status===status);
+  return <>
+    <span className="sr-only" role="status" aria-atomic="true">{phrase}</span>
+    {counts&&<div className="limit-summary">
+      <div className="limit-summary-heading"><span className="limit-mock-tag">MOCK</span><strong>{t('Mock limit check','ผลตรวจเกณฑ์สมมติ')}</strong><span className="muted">{demoLimitStandard.id} {demoLimitStandard.version} · {draft.category}</span></div>
+      <ul className="limit-summary-counts">{statuses.map(status=><li key={status}><LimitChip status={status}/><span>{counts[status]} {t(counts[status]===1?'material':'materials','รายการ')}{status==='exceed'&&<>: {names('exceed').map((f,i)=><span key={f.materialId}>{i>0&&', '}{materialName(f.materialId)} <span className="limit-summary-figure">({f.productPct}% &gt; {f.limitPct}%)</span></span>)}</>}{status==='no_limit_defined'&&<>: {names('no_limit_defined').map(f=>materialName(f.materialId)).join(', ')}</>}</span></li>)}</ul>
+      {cause&&<p className="limit-summary-cause"><Icon name="alert" size={16}/><span>{t('Not checked: the formula input is not valid.','ยังตรวจเกณฑ์สมมติไม่ได้: ข้อมูลสูตรไม่ถูกต้อง')} {cause}</span></p>}
+      <p className="small muted">{t('Open a row’s Mock limit chip for the calculation. Fictional limits only; no Thai FDA or IFRA value. The actual evaluation stays insufficient data.','กดชิปเกณฑ์สมมติของแต่ละแถวเพื่อดูการคำนวณ เกณฑ์ทั้งหมดเป็นค่าสมมติ ไม่ใช่ค่าของ อย. หรือ IFRA ผลประเมินจริงยังเป็นข้อมูลไม่เพียงพอ')}</p>
+    </div>}
+  </>;
 }
 
 function LimitMeter({finding}:{finding:LimitFinding}) {
   const {t}=useDemo();
-  // Display geometry only. The verdict comes from the exact decimal comparison.
+  // Display geometry only (a bullet chart). The verdict comes from the exact decimal comparison.
   const product=Number(finding.productPct),limit=Number(finding.limitPct);
   const scale=Math.max(limit*1.5,product*1.1)||1;
   const mark=Math.min(limit/scale*100,100);
-  // Far above the limit the marker sits near 0%: anchor its label left and drop the 0% label.
-  const nearStart=mark<15;
+  const fill=Math.min(product/scale*100,100);
+  const tone=statusCopy[finding.status].tone;
+  const exceed=finding.status==='exceed';
+  // Near the start the centred limit label would collide with 0%: anchor it left and drop 0%.
+  const nearStart=mark<25;
   return <div className="limit-meter" aria-hidden="true">
-    <div className="limit-meter-track"><span className={`limit-meter-fill limit-meter-fill-${statusCopy[finding.status].tone}`} style={{width:`${Math.min(product/scale*100,100)}%`}}/><span className="limit-meter-mark" style={{left:`${mark}%`}}/></div>
+    {/* Proportional translate keeps the value label inside the track at any width or value. */}
+    <div className="limit-meter-values"><span className={`limit-meter-value limit-meter-value-${tone}`} style={{left:`${fill}%`,transform:`translateX(-${fill}%)`}}>{t('In product','ในผลิตภัณฑ์')} {finding.productPct}%</span></div>
+    <div className="limit-meter-track">
+      {/* Over the limit, the part beyond the marker is hatched so it reads without relying on hue. */}
+      <span className={`limit-meter-fill limit-meter-fill-${tone}${exceed?' limit-meter-fill-split':''}`} style={{width:`${exceed?mark:fill}%`}}/>
+      {exceed&&<span className="limit-meter-excess" style={{left:`${mark}%`,width:`${fill-mark}%`}}/>}
+      <span className="limit-meter-mark" style={{left:`${mark}%`}}/>
+    </div>
     <div className="limit-meter-labels">{!nearStart&&<span>0%</span>}<span className="limit-meter-limit" style={{left:`${mark}%`,transform:nearStart?'none':undefined}}>{t('Limit','เกณฑ์')} {finding.limitPct}%</span></div>
   </div>;
 }
 
-function LimitResult({finding,headingRef}:{finding:LimitFinding;headingRef:RefObject<HTMLHeadingElement|null>}) {
+function LimitResult({finding,headingRef,onEditAmount}:{finding:LimitFinding;headingRef:RefObject<HTMLHeadingElement|null>;onEditAmount?:(materialId:string)=>void}) {
   const {t,locale}=useDemo();
   const headingId=useId();
   const copy=statusCopy[finding.status];
@@ -89,7 +117,7 @@ function LimitResult({finding,headingRef}:{finding:LimitFinding;headingRef:RefOb
   const {productPct:p,limitPct:l,application:app,dilutionPct:d,differencePct:diff,maxDeclaredPct:max}=finding;
   const points=(value:string|null)=>t(`${value} percentage point${value==='1'?'':'s'}`,`${value} จุดเปอร์เซ็นต์`);
   const rounded=finding.maxDeclaredExact?'':t(' (rounded down)',' (ปัดลง)');
-  const inputError=finding.inputError&&(locale==='th'?inputErrorTh[finding.inputError]||finding.inputError:finding.inputError);
+  const inputError=localizeInputError(finding.inputError,locale);
   const sentence=finding.status==='pass'?t(`${name} is ${p}% of the finished product, not above the fictional ${l}% limit for ${app}.`,`${name} อยู่ในผลิตภัณฑ์ ${p}% ไม่เกินเกณฑ์สมมติ ${l}% ของ ${app}`)
     :finding.status==='exceed'?t(`${name} is ${p}% of the finished product, above the fictional ${l}% limit for ${app}.`,`${name} อยู่ในผลิตภัณฑ์ ${p}% เกินเกณฑ์สมมติ ${l}% ของ ${app}`)
     :finding.status==='no_limit_defined'?t(`The demo limit table has no row for ${name} in ${app}. A missing limit is not a pass.`,`ตารางเกณฑ์สมมติไม่มีแถวของ ${name} สำหรับ ${app} จึงสรุปไม่ได้ การไม่มีเกณฑ์ไม่ได้แปลว่าผ่าน`)
@@ -111,6 +139,7 @@ function LimitResult({finding,headingRef}:{finding:LimitFinding;headingRef:RefOb
       <p>{t(`Over by ${points(diff)}. At ${d}% dilution, this material would need to be at most ${max}% of the formula${rounded}; rebalance other materials so the formula still totals 100%.`,`เกิน ${points(diff)} ที่การเจือจาง ${d}% ต้องใส่วัตถุดิบนี้ในสูตรไม่เกิน ${max}%${rounded} แล้วปรับวัตถุดิบอื่นให้รวมยังเป็น 100%`)}</p>
       <p>{t('This demo does not block saving. In the product, only a reviewed, sourced rule can define a hard block.','เดโมนี้ไม่บล็อกการบันทึก ในระบบจริง การบล็อกต้องมาจากกฎที่มีแหล่งอ้างอิงและผ่านการทบทวนแล้วเท่านั้น')}</p>
     </div>}
+    {finding.status==='exceed'&&onEditAmount&&<button type="button" className="button secondary limit-edit-amount" onClick={()=>onEditAmount(finding.materialId)}><Icon name="arrow" size={16}/>{t(`Edit ${name} amount`,`แก้สัดส่วนของ ${name}`)}</button>}
   </section>;
 }
 
@@ -147,7 +176,7 @@ function SupplierEvidence({draft,materialId}:{draft:FormulaVersion;materialId:st
   </section>;
 }
 
-export function LimitCheckDialog({materialId,draft,evaluated,snapshotLabel,onClose,onEvaluate}:{materialId:string;draft:FormulaVersion;evaluated:boolean;snapshotLabel:string;onClose:()=>void;onEvaluate:()=>void}) {
+export function LimitCheckDialog({materialId,draft,evaluated,snapshotLabel,onClose,onEvaluate,onEditAmount}:{materialId:string;draft:FormulaVersion;evaluated:boolean;snapshotLabel:string;onClose:()=>void;onEvaluate:()=>void;onEditAmount?:(materialId:string)=>void}) {
   const {t}=useDemo();
   const finding=materialId&&evaluated?checkStandardLimit(draft,materialId):null;
   const resultHeading=useRef<HTMLHeadingElement>(null);
@@ -157,7 +186,7 @@ export function LimitCheckDialog({materialId,draft,evaluated,snapshotLabel,onClo
   return <Modal open={!!materialId} onClose={onClose} title={`${t('FDA / IFRA','อย. / IFRA')} · ${materialName(materialId)}`}><div className="limit-dialog">
     <div className="limit-dialog-tags"><span className="limit-mock-tag">MOCK</span><code>{materialId}</code></div>
     <Notice>{t('Invented materials and fictional limits for presentation. The layout follows an IFRA-style category table and supplier certificates, but no number here is a real Thai FDA or IFRA limit, and nothing here confirms safety or compliance.','ใช้วัตถุดิบและเกณฑ์สมมติเพื่อพรีเซนต์ รูปแบบตารางเลียนแบบตารางหมวดผลิตภัณฑ์ของ IFRA และใบรับรองของผู้จำหน่าย แต่ตัวเลขทั้งหมดไม่ใช่เกณฑ์จริงของ อย. หรือ IFRA และไม่ยืนยันความปลอดภัยหรือการผ่านข้อกำหนด')}</Notice>
-    {finding?<LimitResult finding={finding} headingRef={resultHeading}/>:<section className="limit-ready">
+    {finding?<LimitResult finding={finding} headingRef={resultHeading} onEditAmount={onEditAmount}/>:<section className="limit-ready">
       <Icon name="shield" size={26}/>
       <h3>{t('Ready to check this material','พร้อมตรวจวัตถุดิบรายการนี้')}</h3>
       <p>{t('Evaluate to compare this material with the fictional limit. Editing the formula clears the mock result; evaluate again to see the new result.','กดประเมินผลเพื่อเทียบวัตถุดิบนี้กับเกณฑ์สมมติ การแก้ข้อมูลจะล้างผลจำลองเดิม ให้ประเมินอีกครั้งเพื่อดูผลของข้อมูลใหม่')}</p>
@@ -172,5 +201,6 @@ export function LimitCheckDialog({materialId,draft,evaluated,snapshotLabel,onClo
       <a href={officialSources.thaiFDA} target="_blank" rel="noopener noreferrer">{t('Thai FDA cosmetic laws','กฎหมายเครื่องสำอางของ อย. ไทย')}<Icon name="arrow" size={16}/><span className="sr-only">{t('(opens in a new tab)','(เปิดแท็บใหม่)')}</span></a>
       <a href={officialSources.ifraLibrary} target="_blank" rel="noopener noreferrer">IFRA Standards Library<Icon name="arrow" size={16}/><span className="sr-only">{t('(opens in a new tab)','(เปิดแท็บใหม่)')}</span></a>
     </div></details>
+    <div className="formula-modal-actions"><button type="button" className="button secondary" onClick={onClose}>{t('Close','ปิด')}</button></div>
   </div></Modal>;
 }
