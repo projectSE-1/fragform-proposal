@@ -1,17 +1,43 @@
+<!-- AI Perfumery Engine project documentation; ownership follows the owner's existing agreement. No new licence is granted. -->
 # Scope Lock — Alpha Demo, 7 October 2026
 
-Team decision, 2026-10-04. The locked list for the BUILD month, in the MoSCoW form the W6 class
-asks for.
+**Updated:** 2026-10-04. Team decision. Replaces the eleven-item view-only lock written earlier
+the same day, which the owner's scope revision superseded.
 
-**This does not change the backlog.** `backlog.md` assigns a requirement's priority for the
-product. This file orders those requirements for one demo on one date. Where the two differ, the
-backlog is the authority on what the product needs; this file is the authority on what gets built
-first.
+This is **not** a change to the backlog or to [mvp-scope.md](../02-design/mvp-scope.md). Those
+define the product across waves 0 to 5. This file says which slice is built first, for one demo,
+on one date. Where they differ, the backlog is the authority on what the product needs and this
+file is the authority on build order.
+
+**The slice: wave 2's calculation core, and nothing else.** No accounts, no team, no laboratory.
 
 **The one workflow, read in one breath:**
 
-> Log in, open a formula, and see every material with its percentage and its restriction flag,
-> each one citing the rule behind it.
+> Open a formula, change a quantity, and watch the percentages and the restriction findings
+> recalculate, each one citing the rule behind it.
+
+---
+
+## Why authentication is out, and what that costs
+
+Wave 1 is the account lifecycle. Skipping it is a deliberate choice with two consequences, one
+good and one that constrains the whole build.
+
+**The good one.** With no accounts there is no personal data, so prior consent (PRIV-001), the
+data-rights endpoints (PRIV-002) and the append-only access log (LR2, rule 26) are not triggered
+by this build. They are not deferred obligations; they are obligations that do not yet apply.
+
+**The constraint, and it is absolute.** With no authentication there is no authorisation, so this
+build has nothing protecting a formula. Therefore:
+
+- **Synthetic data only.** No real material row, no real formula, no supplied dataset file, in the
+  database, the seed, the fixtures or a screenshot (IP-002, rule 0.1).
+- **Local only.** It is not deployed, not exposed on a network, not demonstrated against anything
+  but the seed. Hosting approval is open anyway (IP-004).
+- **The moment a login is added, three things ship in the same increment**: consent evidence
+  before any personal-data write, the own-data rights endpoints, and the append-only log. Rule 26
+  is explicit that logging is not a later hardening task. Nobody adds a sign-in form to this
+  codebase on its own.
 
 ---
 
@@ -19,78 +45,76 @@ first.
 
 | # | Item | Traces to | Done when |
 |---|---|---|---|
-| M1 | Database schema and migrations | `data-model.md`, `roles-permissions.md` §4 | Migrations run on a clean database and `org_id` is on every tenant-owned table |
-| M2 | Synthetic seed data: one organisation, two users, ten materials, one formula with its restriction rows | rule.md rule 19, IP-002 | `make seed` fills a database you can open a formula from. No real dataset file, no real person |
-| M3 | Login and logout | FR-001, NFR-003, SEC-004 | Valid credentials reach the formula list; invalid ones get one generic error; both write an `access_log` row |
-| M4 | The three gates: verify session, action check, record check on `org_id` | SEC-001, SEC-004, `roles-permissions.md` §5 | A formula id from another organisation is refused server side, with the client sending whatever it likes |
-| M5 | Access log writer, append only | LR2, SEC-003, rule 26 | Login, formula view, and calculation run each write a row with the rule 27 fields and a server clock timestamp |
-| M6 | `Result[T]` envelope and the citation type | CER-001, CER-002 | No value can leave the engine without citations, and a missing input returns `insufficient_data` naming it |
-| M7 | Proportions: `pct_in_formula` and `pct_in_product` | FR-004 | A test proves the dilution is applied exactly once, using the 2% × 15% = 0.3% example |
-| M8 | Restriction check with citations | FR-005, FR-006 | Within, over and insufficient data each render, and each flag names its regulation, version and threshold |
-| M9 | Formula list endpoint and screen | FR-002 | Lists only this organisation's formulas, name and last modified only |
-| M10 | Formula detail endpoint and screen | FR-003, NFR-001 | Every material, its quantities, both percentages, its flag and its explanation, in one view |
-| M11 | Three tests traced to acceptance criteria | course rubric, LR4 | Each test names the requirement it proves, in a short `test-report.md` |
+| M1 | Migrations for the calculation tables only: formulas, formula_versions, formula_components, materials, odor_types, material_odor_properties, material_volatility, material_restrictions, regulation_sources, regulation_versions, product_categories | `data-model.md` §3–§6 | Migrations run on a clean database. No users, organisations, consent or log tables exist yet |
+| M2 | Synthetic seed: ten materials, their restriction rows, one formula with components | rule 19, IP-002 | A seeded formula opens and recalculates. Nothing in the seed came from the supplied dataset |
+| M3 | `Result[T]` envelope, citation type and the three REST value types | CER-001, CER-002, `calculation-engine.md` §2 | No value leaves the engine without citations, and a missing input returns a named missing state rather than a zero |
+| M4 | `ProportionCalculator`: exact declared sum, dilution applied once, both bases returned | FR-004 | A test proves 2% of a concentrate at 15% dilution is 0.3% of the product, and a second test fails if the dilution step is skipped |
+| M5 | `ComplianceChecker`: compare against the category limit, cite regulation and version, return pass, exceed or a named missing state | FR-005, FR-006 | A missing category or dilution returns `data_missing` naming it. Dilution is never assumed to be 100% |
+| M6 | `EvaluationService` loads a snapshot and the pure engine computes on it | `calculation-engine.md` §3, CER-003 | The engine package imports no repository, no pgx, no Gin and no clock. The same snapshot always gives the same result |
+| M7 | Three routes, no auth middleware: list formulas, open a formula, recalculate a trial | FR-002, FR-003, FR-007 | A trial recalculation changes nothing in the database |
+| M8 | Formula list and formula detail screens: components, both percentages, findings, citations and missing states | FR-003, NFR-001, NFR-006 | Every figure on screen can be traced to its source without leaving the view. Loading, empty and error states are distinct |
+| M9 | Three tests, each naming the requirement it proves | course rubric, LR4 | A short `test-report.md` maps each test to an acceptance criterion |
 
-Rule 26 is why M5 is a MUST and not a SHOULD: the access log has to ship in the same sprint that
-adds authentication, not afterwards.
+M6 is on the list because it is the one piece that is expensive to retrofit. If the engine starts
+with a database handle in it, taking that out later touches everything.
 
-M2 is synthetic on purpose. Seeding real people would trigger the consent requirement (PRIV-001),
-and the consent records table is not modelled yet. Synthetic accounts hold no real personal data,
-so the first real account is what triggers it, not the demo.
-
-## SHOULD — real value, the product still works without it
-
-| Item | Traces to | Why not MUST |
-|---|---|---|
-| What-if recalculation in place | FR-007, NFR-002 | It answers the fourth pain point and it is the best thing to show on stage, but the demo still tells a complete story without it. Build it the moment M1 to M11 are green |
-
-## COULD — only if there is time left
+## SHOULD — build it the moment the MUST list is green
 
 | Item | Traces to | Note |
 |---|---|---|
-| Export the displayed view | FR-008, IP-003 | The file format is still undecided (Open Question 6) |
-| Odour profile chart, `mass` weighting only | FR-009 | Needs no stakeholder decision now that the weighting is selectable (`calculation-engine.md` §4) |
+| Odour profile chart, `mass` weighting only | FR-009 | Needs no domain decision now that the weighting is selectable (`calculation-engine.md` §6.1). It is the one chart that can ship honestly |
 
-## WON'T — not this build, written down so nobody argues about it again
+## COULD — only with time to spare
+
+| Item | Traces to | Note |
+|---|---|---|
+| Export the displayed formula view | FR-008 | Output format is undecided |
+| Explicit version save | FR-011 | Only if the trial-versus-saved distinction is already solid |
+
+## WON'T — not in this build, written down so it is not argued about again
 
 | Item | Why |
 |---|---|
-| Evaporation curve | The model is not chosen (decision 4), and `feature-list.md` already records it as not ready to implement |
-| Material groups and material pair checks | No supplied field, no table, no engine output (decision 11, Open Question 16) |
-| Formula authoring from an empty state | Out of scope by Open Question 1 |
-| Raw material database editing | No requirement behind it anywhere in FR-001 to FR-010 |
-| Experiment history | Deferred, `roles-permissions.md` §2 |
-| Client portal and every external account | Its permission design is unresolved (SEC-005) |
-| SaaS tenant administration, onboarding, billing | Deferred, `roles-permissions.md` §2 |
-| Supplier document download | A different feature from export, and nothing this cycle reads those PDFs |
-| Admin user management screens | Admin capabilities and account provisioning are open (Open Questions 10 and 2) |
-| Deployment to Railway | Hosting approval is not obtained, and Railway would hold owner IP outside Thailand (Open Question 15, IP-004) |
-| Any AI or model feature | No generative feature this cycle (NFR-004, CER-003) |
-| Evaluation panels, agreements, e-signature | Out of scope (Open Question 8); the agreement law requirement is not triggered (Open Question 4) |
+| Login, signup, MFA, sessions, password reset | Out by this decision. Adding any of it pulls in consent, rights and logging in the same increment |
+| Accounts, organisations, roles, invitations, admin screens, team management | Same decision. Nothing in this build knows who a user is |
+| Access log, consent records, data-rights endpoints | Not deferred obligations. With no personal data they do not yet apply |
+| Batch, mixing sheet, per-item weighing, instruments, pre-dilution | Wave 3, and its tolerances are domain-gated |
+| Document vault, upload, completeness | Wave 4 |
+| Tutorial sandbox and mascot | Wave 5 |
+| Evaporation and evolution curves | The model is not chosen |
+| Material groups and pair checks | No supplied data, no table, no rule |
+| Odour-unit and strength weightings | No detection thresholds in the sample, no approved strength mapping |
+| Any deployment | Hosting approval is open, and an unauthenticated build must not be exposed |
+| Any AI or model feature | No generative feature in this MVP |
 
-If the stakeholder asks for one of these during the build, the answer is "it goes on the WON'T
-list for this build, and we come back to it after the 7th", and it gets recorded here rather than
-argued about again.
+If the owner asks for one of these during the build, the answer is that it goes on this list for
+now and is revisited after the 7th, and it gets recorded here rather than argued about again.
 
 ---
 
-## The eleven MUST items as board issues
-
-Each row above is one issue. Titles ready to paste:
+## The nine MUST items as board issues
 
 ```
-M1  chore: database schema and migrations
-M2  chore: synthetic seed data (no real dataset, no real people)
-M3  feat: login and logout, with access log rows
-M4  feat: the three gates (session, action, record on org_id)
-M5  feat: append-only access log writer
-M6  feat: Result[T] envelope and citation type
-M7  feat: proportions, dilution applied exactly once
-M8  feat: restriction check with cited thresholds
-M9  feat: formula list endpoint and screen
-M10 feat: formula detail endpoint and screen
-M11 test: three tests traced to acceptance criteria
+M1 chore: migrations for the calculation tables
+M2 chore: synthetic seed, ten materials and one formula
+M3 feat: Result envelope, citations and REST value types
+M4 feat: proportions, dilution applied exactly once
+M5 feat: compliance findings with cited thresholds
+M6 feat: EvaluationService snapshot and pure engine boundary
+M7 feat: list, detail and recalculate routes
+M8 feat: formula list and detail screens
+M9 test: three tests traced to acceptance criteria
 ```
 
-Only these become "To do". SHOULD, COULD and WON'T live in a parked column, visible but not in
-this sprint.
+Only these are "To do". SHOULD, COULD and WON'T live in a parked column, visible but not in this
+sprint.
+
+## What the demo shows, and what it must not claim
+
+It shows a formulator opening a real formula structure, changing a quantity, and getting
+server-computed percentages and cited restriction findings back, with missing data visible as
+missing. That is the interview's first three pain points answered end to end.
+
+It must not be presented as a validated chemistry engine, a compliance certificate, or evidence
+that authentication, the laboratory workflow or the predictive models exist. The README already
+states this; keep it true.
