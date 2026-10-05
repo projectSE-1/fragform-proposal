@@ -126,3 +126,9 @@ The subsequent install reported Windows `EPERM` while unlinking the native Next 
   - Composition table overflow at 1024×768 drops to 0 px, from 62–101 px before.
   - At 390×844 the inline chip button is 44 px tall. The table keeps its pre-feature 8 px scroll, and the page does not overflow.
   - The meter shows the value label, a hatched over-limit segment and the haloed 3 px marker, in light and dark.
+
+## Merge of parallel mock limit implementations — 2026-10-05
+
+- Merging `origin/Honney` brought in the limit check above while a parallel local per-ingredient variant existed. The limit check was retained; the local variant was removed with its code and tests.
+- The owner-steering removal of the Interaction checks section, its fixed MOCK report and the Compliance & docs standards cards was kept. The 2026-10-04 checks of those elements and of the Regulations & IFRA shortcut are now historical. The formula shortcut reads Document vault, and the official Thai FDA and IFRA Standards Library links live in `lib/official-sources.ts`, shown only in the limit dialog.
+- `npm test`: 12 passed, 0 failed. `npm run typecheck` and `npm run build` passed. No browser re-check was run for this merge.
