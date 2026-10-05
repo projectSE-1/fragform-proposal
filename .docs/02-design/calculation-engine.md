@@ -133,12 +133,27 @@ Both charts adjust in place without a page reload (NFR-002). They do not adjust 
 | Chart | Adjustment | Runs where |
 |---|---|---|
 | Evolution/evaporation (FR-010) | Time range and resolution | Server. Curves are computed per request from the snapshot, and the response replaces the series |
-| Evolution/evaporation (FR-010) | Temperature and application conditions | Server. Outside the stated validity domain the result is a named missing/out-of-scope state, never a silent extrapolation |
+| Evolution/evaporation (FR-010) | Model: each alone, Raoult mixture, tenacity (§6.3) | Server, because every curve is recomputed |
 | Odour profile (FR-009) | Value axis, linear or logarithmic | Client |
 | Odour profile (FR-009) | How many families before the long tail collapses into one group | Client |
 | Odour profile (FR-009) | Weighting toggle | Server, because every bar height is recomputed |
 
 The client-side adjustments require no new request when the response carries each material's contribution. A logarithmic option is not cosmetic for `odour_units`: detection thresholds span orders of magnitude, so on a linear axis every bar but the largest disappears. The browser still may not recompute a business value, only re-present one (§2).
+
+### 6.3 Evaporation model is selected per request, conditions are fixed
+
+Team decision, 2026-10-05. `PhysicsModel` carries three registered options, chosen by a toggle above the evolution chart, the same way §6.1 handles weighting. None is approved by the owner yet; which one becomes the default is her decision.
+
+| id | What it computes | Inputs from the dataset |
+|---|---|---|
+| `independent` | Each material evaporates as a pure film: flux = k × Psat / (R × T) | `Psat_25C_Pa` |
+| `raoult` | Ideal mixture: Psat scaled by the material's mole fraction, stepped through time because fractions change as materials leave | `Psat_25C_Pa`, `MW (g/mol)` |
+| `tenacity` | No equation. One bar per material for its measured "smellable for" hours | `TGSC Tenacity (hours)` |
+
+- **Conditions are one fixed, stated reference**: paper blotter, still air (k = 1e-4 m/s), 25 °C, 1 mg/cm². It sets the time scale and is shown beside every curve. Skin temperature, spray area and airflow are not modelled; the team judged them too complex for this project. This replaces the temperature/conditions row of §6.2.
+- Non-ideal mixtures (activity coefficients) are out of scope.
+- `odour_units` over time divides the amount left on the surface by the threshold. This is a simplification; the strict form uses the concentration in the air above the surface, and the owner may ask for it.
+- The demo runs these equations on invented inputs (`demo/lib/mock-odour.ts`), labelled as mock. The real inputs stay in the owner dataset and reach the engine only through the backend.
 
 ## 7. Compliance semantics
 
