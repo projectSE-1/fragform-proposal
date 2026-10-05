@@ -72,7 +72,7 @@
 
 ## เอกสารโครงการที่รองรับการอธิบาย
 
-เมื่อเปิดจาก repository ฉบับเต็ม: [ขอบเขต MVP](../.docs/02-design/mvp-scope.md), [Backlog](../.docs/01-requirements/backlog.md), [การคำนวณ](../.docs/02-design/calculation-engine.md), [บทบาทและสิทธิ์](../.docs/02-design/roles-permissions.md), [กฎโครงการ](../.docs/03-compliance/rule.md)
+เมื่อเปิดจาก repository ฉบับเต็ม: [ขอบเขต MVP](../.docs/02-design/mvp-scope.md), [Backlog](../.docs/01-requirements/backlog.md), [การคำนวณ](../.docs/02-design/calculation-engine.md), [บทบาทและสิทธิ์](../.docs/02-design/roles-permissions.md), [กฎโครงการ](../.docs/03-compliance/rule.md) ถ้าถูกถามว่าส่วนไหนบนหน้าจอมาจากเอกสารใด ดู [ที่มาของแต่ละส่วนในเดโม](traceability/README.md)
 
 | เรื่อง | ข้อกำหนดอ้างอิง |
 |---|---|
