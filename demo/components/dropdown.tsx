@@ -1,8 +1,9 @@
 // AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted.
 'use client';
 
-import {Children, Fragment, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
+import {Children, Fragment, isValidElement, useContext, useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import type {ButtonHTMLAttributes, KeyboardEvent, ReactNode} from 'react';
+import {DemoContext} from '@/lib/demo-context';
 import {Icon} from './ui';
 import './dropdown.css';
 
@@ -47,6 +48,8 @@ export function Dropdown({value, onValueChange, children, id, className = '', di
   const generatedId = useId();
   const triggerId = id ?? `${generatedId}-trigger`;
   const listId = `${generatedId}-list`;
+  // Optional so the control still renders (in English) outside the demo provider.
+  const t = useContext(DemoContext)?.t ?? ((english: string) => english);
 
   function show(index = selected) {
     if (unavailable) return;
@@ -157,9 +160,9 @@ export function Dropdown({value, onValueChange, children, id, className = '', di
       aria-activedescendant={open ? `${listId}-${active}` : undefined} disabled={unavailable}
       className={`dropdown-trigger ${open ? 'is-open' : ''}`} onKeyDown={keyDown}
       onBlur={() => setOpen(false)} onClick={() => open ? setOpen(false) : show()}>
-      <span className="dropdown-value">{options[selected]?.label ?? 'Choose an option'}</span><Icon name="down" size={16}/>
+      <span className="dropdown-value">{options[selected]?.label ?? t('Choose an option', 'เลือกตัวเลือก')}</span><Icon name="down" size={16}/>
     </button>
-    {open && <div ref={popupRef} id={listId} role="listbox" aria-label={buttonProps['aria-label'] ?? 'Options'}
+    {open && <div ref={popupRef} id={listId} role="listbox" aria-label={buttonProps['aria-label'] ?? t('Options', 'ตัวเลือก')}
       popover="manual" className="dropdown-popup" onMouseDown={event => event.preventDefault()}>
       {options.map((option, index) => <div key={`${option.value}-${index}`} role="option" id={`${listId}-${index}`}
         aria-selected={option.value === value} aria-disabled={option.disabled || undefined} data-option-index={index}

@@ -56,11 +56,11 @@ export const presentationGuides:Record<Page,PresentationGuide> = {
     boundary:['No file bytes are uploaded or scanned, and no safety or legal compliance is certified.','ไม่มีการอัปโหลดหรือสแกนไฟล์จริง และไม่ได้รับรองความปลอดภัยหรือการผ่านข้อกฎหมาย'],
   },
   references:{
-    title:['Reference library','ข้อมูลอ้างอิง'],
-    purpose:['Look up the sample materials, vehicles, categories, lots and instruments used by the demo.','ดูวัตถุดิบ ตัวพา หมวดหมู่ ล็อต และเครื่องมือตัวอย่างที่เดโมใช้'],
+    title:['Reference library','คลังข้อมูลอ้างอิง'],
+    purpose:['Look up the sample materials, vehicles, categories, lots and instruments used by the demo.','ดูวัตถุดิบ พาหะ หมวดหมู่ ล็อต และเครื่องมือตัวอย่างที่เดโมใช้'],
     benefit:['Gives a shared reference point for understanding the selections shown in other screens.','ช่วยอธิบายว่าตัวเลือกในหน้าต่าง ๆ อ้างถึงข้อมูลรายการใด'],
     steps:[['Switch between the available reference categories.','สลับหมวดข้อมูลอ้างอิงที่มี'],['Inspect an invented material or instrument record.','ดูรายการวัตถุดิบหรือเครื่องมือสมมติ'],['Relate its identifier to a selection in the formula or lab screen.','เชื่อมรหัสรายการกับตัวเลือกในหน้าสูตรหรือแล็บ']],
-    boundary:['These are invented records, not the owner dataset or approved scientific reference data.','รายการเหล่านี้เป็นข้อมูลสมมติ ไม่ใช่ชุดข้อมูลเจ้าของงานหรือข้อมูลวิทยาศาสตร์ที่อนุมัติแล้ว'],
+    boundary:['These are invented records, not the owner dataset or approved scientific reference data.','รายการเหล่านี้เป็นข้อมูลจำลอง ไม่ใช่ชุดข้อมูลของเจ้าของหรือข้อมูลอ้างอิงทางวิทยาศาสตร์ที่อนุมัติแล้ว'],
   },
   account:{
     title:['My account','บัญชีของฉัน'],
@@ -70,7 +70,7 @@ export const presentationGuides:Record<Page,PresentationGuide> = {
     boundary:['Account records, MFA and consent are simulated. No real identity or security setting is changed.','บัญชี MFA และความยินยอมเป็นการจำลอง ไม่ได้เปลี่ยนตัวตนหรือการตั้งค่าความปลอดภัยจริง'],
   },
   admin:{
-    title:['Administration','จัดการผู้ใช้'],
+    title:['Administration','การดูแลระบบ'],
     purpose:['Demonstrate the review of users, role changes and restricted access-log views.','สาธิตการตรวจผู้ใช้ การเปลี่ยนบทบาท และการดูบันทึกการเข้าถึงที่จำกัดสิทธิ์'],
     benefit:['Makes the reason and verification steps of a sensitive administrative action visible.','ช่วยแสดงเหตุผลและขั้นตอนยืนยันก่อนดำเนินการของผู้ดูแล'],
     steps:[['Use an admin demo persona to open this screen.','เลือกบทบาทผู้ดูแลจำลองเพื่อเปิดหน้านี้'],['Inspect an invented user and a role-change scenario.','ดูผู้ใช้สมมติและสถานการณ์เปลี่ยนบทบาท'],['Point out the requested reason and simulated fresh MFA confirmation.','ชี้การระบุเหตุผลและการยืนยัน MFA ใหม่แบบจำลอง']],
@@ -85,10 +85,10 @@ export const presentationGuides:Record<Page,PresentationGuide> = {
   },
   public:{
     title:['About the platform','เกี่ยวกับระบบ'],
-    purpose:['Introduce the proposed workflow, static FAQ and draft notices without showing private records.','แนะนำขั้นตอนระบบ FAQ คงที่ และร่างประกาศโดยไม่แสดงบันทึกส่วนตัว'],
+    purpose:['Introduce the proposed workflow, static FAQ and draft notices without showing private records.','แนะนำขั้นตอนระบบ คำถามที่พบบ่อยแบบคงที่ และร่างประกาศโดยไม่แสดงบันทึกส่วนตัว'],
     benefit:['Gives a simple introduction before opening the account or workspace demonstration.','ช่วยอธิบายภาพรวมก่อนเริ่มสาธิตบัญชีหรือพื้นที่ทำงาน'],
-    steps:[['Show the overview and how-to sections.','แสดงส่วนภาพรวมและวิธีใช้งาน'],['Search the static FAQ for a workflow question.','ลองค้นหาคำถามขั้นตอนงานใน FAQ คงที่'],['Point out the draft label on the legal notices.','ชี้ป้ายร่างบนประกาศกฎหมาย']],
-    boundary:['FAQ answers are static, not AI chat. Legal copy is demonstration text awaiting review.','คำตอบ FAQ เป็นข้อความคงที่ ไม่ใช่แชต AI ข้อความกฎหมายเป็นร่างสาธิตที่ยังต้องตรวจสอบ'],
+    steps:[['Show the overview and how-to sections.','แสดงส่วนภาพรวมและวิธีใช้งาน'],['Search the static FAQ for a workflow question.','ลองค้นหาคำถามขั้นตอนงานในคำถามที่พบบ่อยแบบคงที่'],['Point out the draft label on the legal notices.','ชี้ป้ายร่างบนประกาศกฎหมาย']],
+    boundary:['FAQ answers are static, not AI chat. Legal copy is demonstration text awaiting review.','คำตอบในคำถามที่พบบ่อยเป็นข้อความคงที่ ไม่ใช่แชต AI ข้อความกฎหมายเป็นร่างสาธิตที่ยังต้องตรวจสอบ'],
   },
   auth:{
     title:['Access walkthrough','ทดลองเข้าสู่ระบบ'],

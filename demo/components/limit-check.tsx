@@ -10,6 +10,7 @@ import type {LimitFinding, LimitStatus} from '../lib/limit-check';
 import {checkStandardLimit, checkSupplierCertificate, summarizeStandardLimits} from '../lib/limit-check';
 import {demoLimitStandard, demoSuppliers} from '../lib/limit-check-fixtures';
 import {officialSources} from '../lib/official-sources';
+import {localizeValidationMessage} from '../lib/validation-messages';
 import {Badge, Icon, Modal, Notice} from './ui';
 import './limit-check.css';
 
@@ -29,19 +30,6 @@ function certificateChip(finding:LimitFinding):[string,string] {
   if(finding.missing==='not_listed') return ['Not listed','ไม่ระบุในใบรับรอง'];
   return ['Insufficient data','ข้อมูลไม่เพียงพอ'];
 }
-// Thai wording for the known demo validation messages; any other message is shown as written.
-const inputErrorTh:Record<string,string>={
-  'Declared amounts must total exactly 100%. Values are never normalised.':'ยอดรวมสัดส่วนต้องเท่ากับ 100% พอดี ระบบไม่ปรับค่าให้เอง',
-  'Enter a declared product dilution greater than 0 and no more than 100%.':'ใส่การเจือจางในผลิตภัณฑ์ที่มากกว่า 0 และไม่เกิน 100%',
-  'Enter a positive decimal amount for every material.':'ใส่สัดส่วนเป็นทศนิยมที่มากกว่า 0 ให้ทุกวัตถุดิบ',
-  'Use no more than 12 decimal places for this demo input.':'ใช้ทศนิยมไม่เกิน 12 ตำแหน่งในเดโมนี้',
-  'Select a demo vehicle and application.':'เลือกพาหะและการใช้งานของเดโม',
-  'A material can appear only once in this demo input.':'วัตถุดิบหนึ่งรายการใส่ได้ครั้งเดียว',
-  'Choose a listed demo material.':'เลือกวัตถุดิบจากรายการ',
-  'Add at least one demo material.':'เพิ่มวัตถุดิบอย่างน้อย 1 รายการ',
-  'Invalid declared amount or dilution.':'สัดส่วนหรือการเจือจางไม่ถูกต้อง',
-};
-const localizeInputError=(message:string|null,locale:'en'|'th')=>message&&(locale==='th'?inputErrorTh[message]||message:message);
 
 const materialName=(id:string)=>materials.find(m=>m.id===id)?.name||id;
 const sourceLabel=`${demoLimitStandard.id} ${demoLimitStandard.version}`;
@@ -104,7 +92,7 @@ export function LimitSummary({draft,evaluated}:{draft:FormulaVersion;evaluated:b
   // With no rows there are no findings, so the cause comes from the same read-only input validation.
   const rawCause=!evaluated?null:findings.length?findings.find(f=>f.missing==='invalid_input')?.inputError??null
     :validateDemoContext(draft)??'Add at least one demo material.';
-  const cause=localizeInputError(rawCause,locale);
+  const cause=localizeValidationMessage(rawCause,locale);
   const statuses=counts?summaryOrder.filter(status=>counts[status]>0):[];
   // Counts carry a unit, so "เกิน 1" cannot be read as "over by 1".
   const countText=(s:LimitStatus)=>counts?t(`${statusCopy[s].shortEn}: ${counts[s]}`,`${statusCopy[s].shortTh} ${counts[s]} รายการ`):'';
@@ -115,7 +103,7 @@ export function LimitSummary({draft,evaluated}:{draft:FormulaVersion;evaluated:b
     <span className="sr-only" role="status" aria-atomic="true">{phrase}</span>
     {counts&&<div className="limit-summary">
       {/* The MOCK badge carries the marking, so the English title does not repeat "mock". */}
-      <div className="limit-summary-title"><Badge tone="purple">MOCK</Badge><strong>{t('Limit check','ผลตรวจเกณฑ์สมมติ')}</strong><span className="small muted">{sourceLabel} · {draft.category}</span></div>
+      <div className="limit-summary-title"><Badge tone="purple">{t('MOCK','สมมติ')}</Badge><strong>{t('Limit check','ผลตรวจเกณฑ์สมมติ')}</strong><span className="small muted">{sourceLabel} · {draft.category}</span></div>
       {statuses.length>0&&<ul className="limit-summary-counts">{statuses.map(status=><li key={status}><StatusBadge tone={statusCopy[status].tone} icon={statusCopy[status].icon}>{countText(status)}</StatusBadge></li>)}</ul>}
       {cause&&<CauseLine cause={cause} className="limit-summary-cause"/>}
     </div>}
@@ -159,12 +147,12 @@ function LimitVerdict({finding,application,headingRef}:{finding:LimitFinding|nul
     if(finding.missing==='not_in_formula') return t('This material is no longer in the formula.','วัตถุดิบนี้ไม่อยู่ในสูตรแล้ว');
     return t(`${cantCheck[0]}: the formula input is not valid.`,`${cantCheck[1]}: ข้อมูลสูตรไม่ถูกต้อง`);
   };
-  const inputError=finding?localizeInputError(finding.inputError,locale):null;
+  const inputError=finding?localizeValidationMessage(finding.inputError,locale):null;
   return <section className="limit-verdict" aria-labelledby={headingId}>
     <div className="limit-verdict-head">
       <span className={`limit-verdict-icon limit-verdict-icon-${tone}`}><Icon name={copy?.icon??'shield'} size={20}/></span>
       <div>
-        <p className="limit-source" id={sourceId}><Badge tone="purple">MOCK</Badge><span>{t(...tableName)} · {sourceLabel} · {application}</span></p>
+        <p className="limit-source" id={sourceId}><Badge tone="purple">{t('MOCK','สมมติ')}</Badge><span>{t(...tableName)} · {sourceLabel} · {application}</span></p>
         <h3 id={headingId} ref={headingRef} tabIndex={-1} aria-describedby={sourceId}>{copy?t(copy.en,copy.th):t('Not evaluated yet','ยังไม่ได้ประเมิน')}</h3>
       </div>
     </div>
@@ -231,7 +219,7 @@ function OfficialSources() {
     <p className="limit-more-note">{t('Not the source of the mock limits here.','ไม่ใช่ที่มาของเกณฑ์สมมติในหน้านี้')}</p>
     <div className="limit-official">
       <a href={officialSources.thaiFDA} target="_blank" rel="noopener noreferrer">{t('Thai FDA cosmetic laws','กฎหมายเครื่องสำอางของ อย. ไทย')}<ExternalIcon/>{newTab}</a>
-      <a href={officialSources.ifraLibrary} target="_blank" rel="noopener noreferrer">IFRA Standards Library<ExternalIcon/>{newTab}</a>
+      <a href={officialSources.ifraLibrary} target="_blank" rel="noopener noreferrer">{t('IFRA Standards Library','คลังมาตรฐาน IFRA')}<ExternalIcon/>{newTab}</a>
     </div>
   </MoreItem>;
 }
