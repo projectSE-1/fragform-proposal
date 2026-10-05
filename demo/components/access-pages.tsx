@@ -170,10 +170,28 @@ const initialLogs = ():DemoLog[] => [
   {id:'DEMO-E02',actor:'DEMO-U01',occurred_at:'2026-10-04T02:05:00Z',action:'access_log.query',target:'demo_range',result:'demo_success',context:'Demo Lab A'},
   {id:'DEMO-E21',actor:'DEMO-U21',occurred_at:'2026-10-04T02:00:00Z',action:'document.read',target:'DEMO-D21',result:'demo_success',context:'Demo Lab B'},
 ];
+// Who may do what, from roles-permissions.md 3. The same table the server will enforce; here it
+// only explains the persona switcher. Hiding a button is never the control (rule.md).
+const roleActions:{en:string;th:string;roles:readonly Role[]}[] = [
+  {en:'View and analyse formulas',th:'ดูและวิเคราะห์สูตร',roles:roles},
+  {en:'Create formulas, save versions',th:'สร้างสูตรและบันทึกเวอร์ชัน',roles:['formulator','org_admin','system_admin']},
+  {en:'Record lab weighing',th:'บันทึกการชั่งในแล็บ',roles:['formulator']},
+  {en:'Upload documents',th:'อัปโหลดเอกสาร',roles:['formulator','data_curator','org_admin','system_admin']},
+  {en:'Manage members and roles',th:'จัดการสมาชิกและบทบาท',roles:['org_admin','system_admin']},
+  {en:'Query the access log',th:'ค้นหาบันทึกการเข้าถึง',roles:['org_admin','system_admin']},
+  {en:'MFA required',th:'ต้องใช้ MFA',roles:mandatoryMfa},
+];
+function RoleMatrix() {
+  const {role,setRole,t} = useDemo();
+  return <Panel className="access-role-matrix"><div className="panel-heading"><div><h2>{t('Roles and what each one can do','บทบาทและสิ่งที่แต่ละบทบาททำได้')}</h2><p className="muted small">{t('Seven fixed roles inside one organisation. A member can hold more than one. Click a column to try that role.','บทบาทคงที่ 7 แบบภายในองค์กร สมาชิกหนึ่งคนมีได้มากกว่าหนึ่งบทบาท คลิกหัวคอลัมน์เพื่อลองบทบาทนั้น')}</p></div><Badge tone="purple">{t('You are: ','บทบาทปัจจุบัน: ')}<code>{role}</code></Badge></div>
+    <div className="table-wrap"><table className="data-table"><caption className="sr-only">{t('Permission by role','สิทธิ์ตามบทบาท')}</caption><thead><tr><th scope="col">{t('Action','การกระทำ')}</th>{roles.map(r=><th scope="col" key={r} className={r===role?'access-role-current':''}><button className="access-role-pick" aria-pressed={r===role} onClick={()=>setRole(r)}>{r.replace('_',' ')}</button></th>)}</tr></thead>
+    <tbody>{roleActions.map(row=><tr key={row.en}><th scope="row">{t(row.en,row.th)}</th>{roles.map(r=><td key={r} className={r===role?'access-role-current':''}>{row.roles.includes(r)?<span className="access-role-yes" aria-label={t('Allowed','อนุญาต')}><Icon name="check" size={15}/></span>:<span className="muted" aria-label={t('Not allowed','ไม่อนุญาต')}>·</span>}</td>)}</tr>)}</tbody></table></div>
+  </Panel>;
+}
 type AdminOperation = {kind:'grant'|'revoke'|'reject'|'deactivate'|'invite'|'context';target?:DemoMember;context?:string};
 
 export function AdminPage() {
-  const {role,t,notify} = useDemo();
+  const {role,setRole,t,notify} = useDemo();
   const [members,setMembers] = useState(initialMembers);
   const [logs,setLogs] = useState(initialLogs);
   const [context,setContext] = useState(role==='system_admin'?'':'Demo Lab A');
@@ -190,7 +208,7 @@ export function AdminPage() {
   const [dateFrom,setDateFrom] = useState('2026-10-04');
   const [dateTo,setDateTo] = useState('2026-10-04');
   useEffect(()=>{setContext(role==='system_admin'?'':'Demo Lab A');setOp(null);setProof(false);setQueryActor('all');setQueryReason('');setQueryDone(false);setQueried([]);},[role]);
-  if(!can(role,'admin')) return <EmptyState title={t('Administrator scenario required','ต้องใช้สถานการณ์ผู้ดูแล')} description={t('Choose org_admin or system_admin in the demo toolbar to explore scoped administration.','เลือก org_admin หรือ system_admin ในแถบเดโมเพื่อลองการจัดการตามบริบท')}/>;
+  if(!can(role,'admin')) return <div className="access-page"><PageHeader eyebrow={t('TEAM','ทีม')} title={t('Team & roles','ทีมและบทบาท')} description={t('Who may do what in an organisation. Member management needs an administrator role.','ใครทำอะไรได้บ้างในองค์กร การจัดการสมาชิกต้องใช้บทบาทผู้ดูแล')}/><RoleMatrix/><Panel><EmptyState title={t('Member management needs an administrator','การจัดการสมาชิกต้องใช้บทบาทผู้ดูแล')} description={t('Your current role can read this table but cannot change anyone\'s access.','บทบาทปัจจุบันอ่านตารางนี้ได้ แต่เปลี่ยนสิทธิ์ของใครไม่ได้')} action={<button className="button primary" onClick={()=>setRole('org_admin')}><Icon name="users" size={17}/>{t('Try as org_admin','ลองเป็น org_admin')}</button>}/></Panel></div>;
   const current = members.filter(x=>x.org===context);
   const lastRole = op?.kind==='revoke'&&op.target?.grants.length===1;
   const refusedSelf = op?.kind==='grant'&&op.target?.id==='DEMO-U01';
@@ -214,7 +232,8 @@ export function AdminPage() {
     setQueried(result);setQueryDone(true);addLog('access_log.query','demo_metadata_range','demo_success',context,queryReason);notify(t('Synthetic metadata query completed; the query event was appended.','ค้นหาข้อมูลเมตาจำลองแล้ว และเพิ่มเหตุการณ์ค้นหา'));
   }
   return <div className="access-page">
-    <PageHeader eyebrow={t('ADMINISTRATION','การดูแลระบบ')} title={t('People & access','ผู้ใช้และสิทธิ์')} description={t('Fixed role grants, pending decisions and minimal access evidence in a synthetic organisation.','การให้บทบาทแบบคงที่ คำขอที่รอการตัดสินใจ และหลักฐานการเข้าถึงขั้นต่ำในองค์กรจำลอง')} actions={<Badge tone="purple"><code>{role}</code></Badge>}/>
+    <PageHeader eyebrow={t('ADMINISTRATION','การดูแลระบบ')} title={t('Team & roles','ทีมและบทบาท')} description={t('Fixed role grants, pending decisions and minimal access evidence in a synthetic organisation.','การให้บทบาทแบบคงที่ คำขอที่รอการตัดสินใจ และหลักฐานการเข้าถึงขั้นต่ำในองค์กรจำลอง')} actions={<Badge tone="purple"><code>{role}</code></Badge>}/>
+    <RoleMatrix/>
     <Panel className="access-context-panel"><div><span className="eyebrow">{t('EXPLICIT ADMIN CONTEXT','บริบทผู้ดูแลที่เลือกชัดเจน')}</span><h2>{context||t('Select an organisation','เลือกองค์กร')}</h2><p className="muted small">{role==='system_admin'?t('Each context switch needs a reason and a new mock MFA step. No all-tenant view is provided.','การเปลี่ยนบริบทแต่ละครั้งต้องมีเหตุผลและ MFA จำลองใหม่ ไม่มีมุมมองข้อมูลทุกองค์กร'):t('Organisation administration is restricted to Demo Lab A.','ผู้ดูแลองค์กรจัดการได้เฉพาะ Demo Lab A')}</p></div>{role==='system_admin'&&<div className="row access-wrap">{['Demo Lab A','Demo Lab B'].map(org=><button key={org} className={`button ${context===org?'primary':'secondary'}`} disabled={context===org} onClick={()=>start({kind:'context',context:org})}>{org}</button>)}</div>}</Panel>
     {!context?<EmptyState title={t('Choose your target context','เลือกบริบทเป้าหมาย')} description={t('The member list and metadata query remain unavailable until a specific synthetic organisation is selected.','รายชื่อผู้ใช้และข้อมูลเมตาจะแสดงหลังเลือกองค์กรจำลองที่ต้องการ')}/>:<>
       <Panel><div className="panel-heading"><div><h2>{t('Organisation members','สมาชิกองค์กร')}</h2><p className="muted small">{t(`${current.length} invented records · no invitations are sent`,`ข้อมูลจำลอง ${current.length} รายการ · ไม่มีการส่งคำเชิญ`)}</p></div><button className="button primary" onClick={()=>start({kind:'invite'})}><Icon name="plus" size={17}/>{t('Simulate invitation','จำลองคำเชิญ')}</button></div><div className="table-wrap"><table className="data-table access-members-table"><thead><tr><th>{t('Person','ผู้ใช้')}</th><th>{t('Roles','บทบาท')}</th><th>{t('Status','สถานะ')}</th><th>{t('Actions','การกระทำ')}</th></tr></thead><tbody>{current.map(member=><tr key={member.id}><td><strong>{member.name}</strong><span className="access-cell-sub">{member.email}</span>{member.id==='DEMO-U01'&&<span className="access-cell-sub">{t('Acting persona · self','ผู้ใช้ที่กำลังกระทำ · ตนเอง')}</span>}</td><td><div className="access-role-list">{member.grants.length?member.grants.map(r=><Badge key={r}><code>{r}</code></Badge>):<span className="muted">{t('No lab roles','ไม่มีบทบาทแล็บ')}</span>}</div></td><td><Badge tone={member.status==='active'?'green':member.status==='rejected'||member.status==='inactive'?'neutral':'amber'}>{member.status==='active'?t('Active','ใช้งาน'):member.status==='pending'?t('Pending','รอสิทธิ์'):member.status==='invited'?t('Invited · demo','เชิญ · จำลอง'):member.status==='rejected'?t('Rejected · demo','ปฏิเสธ · จำลอง'):t('Inactive · demo','ปิดใช้งาน · จำลอง')}</Badge></td><td><div className="access-member-actions"><button className="button ghost small" disabled={member.status==='rejected'||member.status==='inactive'} onClick={()=>start({kind:'grant',target:member})}>{member.id==='DEMO-U01'?t('Test self-grant','ลองให้สิทธิ์ตัวเอง'):t('Grant role','ให้บทบาท')}</button>{member.grants.length>0&&<button className="button ghost small" disabled={member.status==='inactive'||member.status==='rejected'} onClick={()=>start({kind:'revoke',target:member})}>{t('Revoke role','เพิกถอนบทบาท')}</button>}{member.status==='pending'&&<button className="button ghost small" onClick={()=>start({kind:'reject',target:member})}>{t('Reject pending','ปฏิเสธผู้รอสิทธิ์')}</button>}{member.status==='active'&&member.id!=='DEMO-U01'&&<button className="button ghost small" onClick={()=>start({kind:'deactivate',target:member})}>{t('Deactivate','ปิดใช้งาน')}</button>}</div></td></tr>)}</tbody></table></div></Panel>

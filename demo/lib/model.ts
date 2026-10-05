@@ -82,24 +82,34 @@ export function downloadDemo(filename:string, value:unknown) {
 }
 
 
-// ---------------------------------------------------------------------------
-// Declared-quantity arithmetic. Exact decimal strings in, strings out: no float
-// rounding on a business value. These are declarations and ratios only. Nothing
-// here is a chemical prediction, and nothing here needs an approved model.
-// ---------------------------------------------------------------------------
 function toNumber(value:string):number {const n=Number(value);return Number.isFinite(n)?n:0;}
 
-// Composition share by odour family. This is arithmetic on declared percentages,
-// presented as composition, never as perceived strength. The odour-unit and
-// categorical-strength weightings need observations we do not have
-// (calculation-engine.md 6.1).
-export function familyShares(version:FormulaVersion):{family:string;pct:number;color:string}[] {
-  const totals = new Map<string,{pct:number;color:string}>();
+// The three odour weightings of calculation-engine.md 6.1. The caller names one and gets exactly
+// that one back; a weighting whose inputs are absent reports what is missing and draws nothing.
+// Nothing here ever substitutes mass for another weighting.
+export const weightings = ['mass','odour_units','strength'] as const;
+export type Weighting = typeof weightings[number];
+export type FamilyBar = {family:string;color:string;value:number|null;used:number;total:number;materials:{id:string;name:string}[]};
+export type WeightedProfile = {weighting:Weighting;available:boolean;missing:string|null;bars:FamilyBar[]};
+const weightingInput:Record<Weighting,string|null> = {
+  mass: null,
+  odour_units: 'detection threshold (empty in 10 of 10 sample substances)',
+  strength: 'approved numeric mapping for low/medium/high odour strength',
+};
+export function weightedProfile(version:FormulaVersion, weighting:Weighting):WeightedProfile {
+  const groups = new Map<string,FamilyBar>();
   for (const item of version.ingredients) {
     const material = materials.find(m => m.id === item.materialId);
     if (!material) continue;
-    const current = totals.get(material.family) ?? {pct:0, color:material.color};
-    totals.set(material.family, {pct: current.pct + toNumber(item.amount), color: current.color});
+    const bar = groups.get(material.family) ?? {family:material.family, color:material.color, value:0, used:0, total:0, materials:[]};
+    bar.total += 1;
+    bar.materials.push({id:material.id, name:material.name});
+    if (weighting === 'mass') { bar.value = (bar.value ?? 0) + toNumber(item.amount); bar.used += 1; }
+    else bar.value = null;
+    groups.set(material.family, bar);
   }
-  return [...totals.entries()].map(([family, value]) => ({family, pct:Number(value.pct.toFixed(6)), color:value.color})).sort((a,b)=>b.pct-a.pct);
+  const bars = [...groups.values()].map(b => ({...b, value: b.value === null ? null : Number(b.value.toFixed(6))}))
+    .sort((a,b) => (b.value ?? 0) - (a.value ?? 0) || a.family.localeCompare(b.family));
+  const missing = weightingInput[weighting];
+  return {weighting, available: missing === null, missing, bars};
 }
