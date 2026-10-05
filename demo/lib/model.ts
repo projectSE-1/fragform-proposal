@@ -2,6 +2,7 @@
 // All records in this module are invented, public-safe fixtures. No scientific rules are encoded.
 // Roles and the pages below beyond 'formulas' and 'editor' belong to the roadmap preview, not to
 // the alpha build (scope-lock.md). They are kept so the preview pages can still be shown.
+import {mockWeighted} from './mock-odour.ts';
 export const roles = ['formulator', 'data_curator', 'safety_assessor', 'legal_reviewer', 'approver', 'org_admin', 'system_admin'] as const;
 export type Role = typeof roles[number] | 'pending';
 export type Page = 'dashboard' | 'formulas' | 'editor' | 'lab' | 'compliance' | 'references' | 'account' | 'admin' | 'tutorial' | 'public' | 'auth';
@@ -89,27 +90,31 @@ function toNumber(value:string):number {const n=Number(value);return Number.isFi
 // Nothing here ever substitutes mass for another weighting.
 export const weightings = ['mass','odour_units','strength'] as const;
 export type Weighting = typeof weightings[number];
-export type FamilyBar = {family:string;color:string;value:number|null;used:number;total:number;materials:{id:string;name:string}[]};
-export type WeightedProfile = {weighting:Weighting;available:boolean;missing:string|null;bars:FamilyBar[]};
+// 'real' is the supplied dataset, where only mass is computable today. 'mock' uses the invented
+// values in mock-odour.ts and is shown only when the viewer picks it, always labelled as mock.
+export type DataSource = 'real' | 'mock';
+export type FamilyBar = {family:string;color:string;value:number|null;used:number;total:number;materials:{id:string;name:string;included:boolean}[]};
+export type WeightedProfile = {weighting:Weighting;source:DataSource;available:boolean;missing:string|null;bars:FamilyBar[]};
 const weightingInput:Record<Weighting,string|null> = {
   mass: null,
   odour_units: 'detection threshold (empty in 10 of 10 sample substances)',
   strength: 'approved numeric mapping for low/medium/high odour strength',
 };
-export function weightedProfile(version:FormulaVersion, weighting:Weighting):WeightedProfile {
+export function weightedProfile(version:FormulaVersion, weighting:Weighting, source:DataSource='real'):WeightedProfile {
+  const missing = weighting === 'mass' || source === 'mock' ? null : weightingInput[weighting];
   const groups = new Map<string,FamilyBar>();
   for (const item of version.ingredients) {
     const material = materials.find(m => m.id === item.materialId);
     if (!material) continue;
-    const bar = groups.get(material.family) ?? {family:material.family, color:material.color, value:0, used:0, total:0, materials:[]};
+    const bar = groups.get(material.family) ?? {family:material.family, color:material.color, value:null, used:0, total:0, materials:[]};
+    // A material lacking this weighting's input is listed under its family but adds nothing to the height.
+    const height = missing === null ? mockWeighted(material.id, toNumber(item.amount), weighting) : null;
     bar.total += 1;
-    bar.materials.push({id:material.id, name:material.name});
-    if (weighting === 'mass') { bar.value = (bar.value ?? 0) + toNumber(item.amount); bar.used += 1; }
-    else bar.value = null;
+    bar.materials.push({id:material.id, name:material.name, included:height !== null});
+    if (height !== null) { bar.value = (bar.value ?? 0) + height; bar.used += 1; }
     groups.set(material.family, bar);
   }
   const bars = [...groups.values()].map(b => ({...b, value: b.value === null ? null : Number(b.value.toFixed(6))}))
-    .sort((a,b) => (b.value ?? 0) - (a.value ?? 0) || a.family.localeCompare(b.family));
-  const missing = weightingInput[weighting];
-  return {weighting, available: missing === null, missing, bars};
+    .sort((a,b) => (b.value ?? -1) - (a.value ?? -1) || a.family.localeCompare(b.family));
+  return {weighting, source, available: missing === null, missing, bars};
 }

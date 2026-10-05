@@ -27,3 +27,18 @@
 .evo-empty{fill:var(--amber);font-size:14px;font-weight:600}
 .formula-evo-swatch{display:inline-block;width:16px;height:0;border-top:2px dashed;margin-right:8px;vertical-align:middle}
 @media(max-width:520px){.formula-segmented button{min-height:40px;padding:6px 9px;font-size:10px}.formula-profile-row.weighted{grid-template-columns:58px minmax(0,1fr) auto}}
+/* Hover notes: an "i" beside a control or chart title; the bubble shows on hover and on keyboard focus. */
+.formula-info{position:relative;display:inline-flex;vertical-align:middle;margin-left:5px}
+.formula-info-button{border:0;background:transparent;color:var(--muted);padding:2px;border-radius:50%;cursor:help;display:inline-flex;min-height:0}
+.formula-info-button:hover,.formula-info-button:focus-visible{color:var(--purple)}
+.formula-info-bubble{position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);width:max-content;max-width:300px;background:var(--text);color:var(--surface);font-size:11px;font-weight:400;line-height:1.55;letter-spacing:0;text-transform:none;padding:9px 11px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:30;opacity:0;visibility:hidden;transition:opacity .12s;pointer-events:none;white-space:normal;text-align:left}
+.formula-info:hover .formula-info-bubble,.formula-info:focus-within .formula-info-bubble{opacity:1;visibility:visible}
+.formula-chart-title h3 .formula-info-bubble{left:0;transform:none}
+.formula-bar-mock>span{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.28) 0 5px,transparent 5px 10px)!important}
+.formula-partial{color:var(--amber);font-weight:600}
+.formula-evolution-mock{border-style:dashed;border-color:var(--amber-line)}
+.evo-threshold{stroke:var(--amber);stroke-dasharray:6 4;stroke-width:1.4}
+.evo-threshold-label{fill:var(--amber);font-size:11px;font-weight:600}
+.evo-watermark{fill:var(--amber);opacity:.45;font-size:12px;font-weight:700;letter-spacing:2px}
+.formula-evo-swatch.solid{border-top-style:solid;border-top-width:3px}
+@media(max-width:520px){.formula-info-bubble{max-width:240px}}

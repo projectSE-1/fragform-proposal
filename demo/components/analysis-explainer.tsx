@@ -16,13 +16,13 @@ const explanations:Record<Topic,{purpose:Copy;benefit:Copy;demo:Copy;try:Copy}>=
   profile:{
     purpose:{en:'Show the formula grouped by odour family, such as Citrus, Floral and Woody, as a share of the concentrate by weight.',th:'แสดงสูตรแยกตามหมวดกลิ่น เช่น Citrus, Floral และ Woody เป็นสัดส่วนโดยน้ำหนักของหัวน้ำหอม'},
     benefit:{en:'A quick read of what the formula is mostly made of, before any perception model exists.',th:'อ่านได้เร็วว่าสูตรประกอบด้วยอะไรเป็นหลัก แม้ยังไม่มีโมเดลการรับรู้กลิ่น'},
-    demo:{en:'This is composition, not perceived strength. Weighting by how strongly each material is smelled needs detection thresholds, which are empty in the supplied sample, or an approved numeric mapping for odour strength. Neither exists yet.',th:'นี่คือสัดส่วนโดยมวล ไม่ใช่ความแรงของกลิ่นที่รับรู้ การถ่วงน้ำหนักตามความแรงของกลิ่นต้องใช้ค่าความเข้มข้นต่ำสุดที่ได้กลิ่น ซึ่งว่างในข้อมูลตัวอย่าง หรือการแปลงความแรงของกลิ่นเป็นตัวเลขที่อนุมัติแล้ว ซึ่งยังไม่มีทั้งสองอย่าง'},
+    demo:{en:'By mass is real arithmetic on your input. By odour units and by perceived strength need detection thresholds and an approved strength mapping, which the real dataset does not have yet, so they draw only with Data set to Mock.',th:'ตามมวลคำนวณจริงจากค่าที่กรอก ส่วนตามหน่วยกลิ่นและตามความแรงที่รับรู้ต้องใช้ค่าความเข้มข้นต่ำสุดที่ได้กลิ่นและการแปลงความแรงที่อนุมัติแล้ว ซึ่งข้อมูลจริงยังไม่มี จึงวาดได้เฉพาะเมื่อเลือกข้อมูลจำลอง'},
     try:{en:'Open View data to see the exact share behind each bar.',th:'กดดูข้อมูลเพื่อดูสัดส่วนที่แน่นอนของแต่ละแท่ง'},
   },
   evolution:{
     purpose:{en:'Show how each material in the formula is expected to fade over time, once a model exists.',th:'แสดงว่าวัตถุดิบแต่ละชนิดในสูตรจะจางลงตามเวลาอย่างไร เมื่อมีโมเดลรองรับแล้ว'},
     benefit:{en:'Explains why a formula changes character in the hours after it is applied.',th:'อธิบายว่าทำไมกลิ่นของสูตรจึงเปลี่ยนไปในช่วงหลายชั่วโมงหลังใช้'},
-    demo:{en:'No curve is drawn on purpose. The evaporation model is not chosen, and the threshold each curve would be scaled against is missing from the supplied sample. One row per material says so, rather than drawing a line that looks right and means nothing.',th:'ตั้งใจไม่วาดเส้นกราฟ เพราะยังไม่ได้เลือกโมเดลการระเหย และค่าที่ใช้ปรับสเกลของแต่ละเส้นยังไม่มีในข้อมูลตัวอย่าง จึงแสดงหนึ่งแถวต่อวัตถุดิบแทนการวาดเส้นที่ดูสมจริงแต่ไม่มีความหมาย'},
+    demo:{en:'With Data set to Mock, the curves come from invented half-lives and thresholds and are labelled as mock. With Real dataset, no curve is drawn: the evaporation model is not chosen and the thresholds are missing from the supplied sample.',th:'เมื่อเลือกข้อมูลจำลอง เส้นกราฟมาจากครึ่งชีวิตและค่าเกณฑ์ที่แต่งขึ้น และมีป้ายบอกว่าเป็นข้อมูลจำลอง เมื่อเลือกข้อมูลจริง จะไม่วาดเส้น เพราะยังไม่ได้เลือกโมเดลการระเหยและข้อมูลตัวอย่างไม่มีค่าเกณฑ์'},
     try:{en:'Add or remove a material and see the list follow the formula.',th:'เพิ่มหรือลบวัตถุดิบ แล้วดูว่ารายการเปลี่ยนตามสูตร'},
   },
   'error-budget':{
