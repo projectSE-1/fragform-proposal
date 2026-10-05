@@ -1,53 +1,72 @@
 <!-- AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence is granted. -->
-# AI Perfumery Engine — calculation demo
+# AI Perfumery Engine — interactive demo
 
-Local, standalone **Next.js App Router + TypeScript** prototype. Every material, formula and chart in it is invented. This directory is separate from the future production `src/frontend` app under rule 85, and it has no Go API, database, identity provider or scientific engine behind it.
+Local, standalone **Next.js App Router + TypeScript** prototype on the Honney branch. All materials, formulas, people, documents, measurements and charts are invented. This directory is separate from the future production `src/frontend` app under rule 85. It has no Go API, database, identity provider, email, scanner or scientific engine.
 
-**Trimmed on 2026-10-04 to the alpha slice** in [scope-lock.md](../.docs/01-requirements/scope-lock.md): the formula and its calculation, nothing else. Sign-in, accounts, roles and team management, the laboratory and weighing workflow, documents, the tutorial and the mascot were removed from the demo. They remain in the backlog and in [mvp-scope.md](../.docs/02-design/mvp-scope.md) as waves 1 and 3 to 5; they are simply not what this build is showing. Their earlier demo pages are in git history if they are wanted back.
+## What is this build, and what is a preview
+
+The navigation has two groups, so nobody has to guess.
+
+- **Workspace · this build** — the formula library and the formula workspace: declared composition, the exact product share, grams for a declared batch, the mock limit check, composition by odour family, and the what-if trial. This is the alpha slice in [scope-lock.md](../.docs/01-requirements/scope-lock.md).
+- **Roadmap preview · not in this build** — overview, lab, compliance and documents, references, tutorial, account and administration. Every one of these pages shows a banner saying so. They explain where the product goes next; they are not evidence that it exists.
+
+**Real substances and fictional limits never meet.** Morning Reverie, Quiet Woods and Petal No. 04 use publicly documented substances with their CAS numbers, and their limit chips honestly report that no limit row exists yet. The fictional limit table applies only to the fictional study materials in the **Mock limit walkthrough** formula. A fictional maximum next to a real chemical would read as a real regulatory claim, and `tests/limit-check.test.ts` fails if one appears.
 
 ## Run
 
-Requires Node.js >=20.9 and npm. From the repository root:
+For a copy/ZIP opened on another local machine, start with [DEMO.md](DEMO.md). The demo has complete source files and a lockfile; it requires no project-specific absolute path, environment secret or external API.
+
+Requires Node.js >=20.9 (verified locally with 24.18.1) and npm. From the repository root:
 
 ```powershell
 cd demo
-npm ci --ignore-scripts
-npm run dev
+npm.cmd ci --ignore-scripts
+npm.cmd run dev
 ```
 
-Open http://127.0.0.1:3000. It binds to loopback only. `npm run build` then `npm start` runs the same thing as a build. Changes live in memory and reset on refresh or on Reset demo.
+These Windows PowerShell examples use `npm.cmd` to select the command wrapper explicitly when `npm.ps1` is blocked. On macOS/Linux, use `npm` instead. Run installation/start commands inside `demo/`, where its package manifest and lockfile live.
+
+Open http://127.0.0.1:3000. It binds to loopback only. To build and run the standalone demo instead: `npm.cmd run build`, then `npm.cmd start`. The build is still a **synthetic demo**, never a production implementation of the perfumery product. Workflow changes exist only in memory and reset on refresh or Reset demo. The Light/Dark button in the top bar stores only `light` or `dark` under `fragrance-studio.theme` in this browser; refresh and Reset demo preserve that appearance choice. If storage is unavailable, switching still works for the open page. Switching pages preserves the current exercise. Pending access hides domain views; role switches only exercise presentation permissions.
 
 ## Try the workflow
 
-1. Open **Morning Reverie**. Read the declared composition: amounts are decimal text, w/w, and the demo never normalises them for you.
-2. Change the first two amounts to `35` and `35`, leaving `20` and `10`. Save with a version note. Open the history: earlier versions are unchanged.
-3. Make the amounts total something other than 100 and try to save. The declaration is rejected with the exact total, rather than being silently corrected.
-4. Start a **what-if**, change amounts, and press Evaluate. The result is **insufficient data**, because no approved model or rule set exists yet. That is the intended answer, not a gap in the demo.
-5. Switch Ready view / Loading preview / Error preview to exercise the shared request states.
-6. Switch EN/TH. Numbers keep their value and precision in both.
+1. Open Morning Reverie (real substances, with CAS numbers). Change the first two amounts to `35` and `35`, leaving `20` and `10`. Save with an invented version note. Inspect history: earlier versions remain intact.
+2. Start what-if, change amounts and Evaluate. The official result returns **insufficient data**. The composition-by-family chart follows your input, because it is arithmetic on the declared amounts; the evolution view lists each material as insufficient data, because no evaporation model is approved. Type a batch size to see each row's mass in grams. Discard or explicitly save the trial.
+3. In Lab workspace select a saved version, instrument and lots. Create a batch, record a preset reading, then reweigh with a reason. Try BLOCK: choosing NORMAL does not dismiss the recorded block. Walk through the labelled remediation simulation.
+4. In Compliance & docs choose a document type and its matching SKU or lot, then an embedded sample. Observe simulated queued/scanning/parsing/ready or rejected states. Repeating a type/subject appends another version with a link to the retained earlier record. No actual file is accepted.
+5. Open the user menu: its first level shows Internal Team, SaaS Workspace and Client Portal. Open Internal Team to choose an existing permission profile such as Org Admin or the separate Pending access account status. The two external groups are planned and unavailable in this MVP. Inspect pending access, fixed role controls, synthetic MFA, account rights and the reasoned metadata query. Persona switching is a presentation test; it never grants real access. Account consent history persists when the withdrawal preview changes access to pending.
+6. Use Ready view / Loading preview / Error preview to exercise shared request states; Retry restores only the synthetic display.
+7. Opt into the isolated tutorial. Q6 is available to administrator personas only; pending personas have Q0–Q5. Use the public overview, how-to/FAQ and labelled draft legal notice.
+8. Open the **Mock limit walkthrough** formula and choose Evaluate. Each row's **Mock limit** chip (TH: เกณฑ์สมมติ) now shows a result against the fictional `DEMO-STD v1` table: with the seeded 40/30/20/10 (or the 35/35/20/10 from step 1), Soft study 04 and Citrus study 01 are within, Petal study 02 exceeds and Wood study 03 has no mock limit (insufficient data, not a pass). Open a row: the **Thai FDA / IFRA** dialog (TH: อย. / IFRA) shows the verdict, the finished-product share beside the mock limit, and the headroom or excess with a rounded-down maximum. The calculation (`% in formula × % dilution ÷ 100`), the fictional limit row, the supplier documents and the official links sit in collapsed sections. A separate Thai FDA (TH) row stays not mocked / insufficient data, and two mock supplier document sets are kept separate. Switch Application to Body lotion (demo category) and evaluate again to see the verdicts change; any edit clears the mock result. All limits are invented in an IFRA-style layout; the actual evaluation stays insufficient data and nothing is added to saved versions or exports.
 
-## What it does and does not establish
+For a presentation, follow [PRESENTATION.md](PRESENTATION.md). Every ready page has a collapsible TH/EN Presentation guide with its purpose, benefit, three demonstration steps and boundary. Analytical tabs have contextual “Explain this section” disclosures. The former sample profiles 1 and 2 and the three unnamed time lines are gone: they were hand-authored coordinates with no definition behind them. Composition by odour family replaces them, computed from the input; Profile A/B stay out until their meaning is defined (`calculation-engine.md` §6). [Source traceability](traceability/README.md) (TH) maps each visible part of every page to the backlog, rule.md, design document or owner request it comes from.
 
-| Design requirement | What the demo shows | What implementation still needs |
+The limit-check dialog keeps the official Thai FDA cosmetic-laws and IFRA Standards Library links as reading links only; they are not the source of the fictional limits. “Document vault” in the formula evidence panel opens Compliance & docs. The former Interaction checks section, fixed scientific MOCK report and explanatory Thai FDA / ASEAN / IFRA standards cards on Compliance & docs have been removed. The document page retains its four independent jurisdiction blocks (TH / EU / US / ASEAN) and typed sample vault, including the existing SKU-bound IFRA certificate-of-conformity type; actual findings remain insufficient data. These presentation removals do not remove FR-005/006/014 or production pair/group checks.
+
+## Scope and limitations
+
+| Design requirement | Demo scenario | Real implementation still required |
 |---|---|---|
-| FR-002, FR-003 | Formula list and a single connected workspace for composition and context | Server-side authorised list and detail, real records |
-| FR-004, FR-011 | Exact decimal input, the 100% declaration contract, immutable version history | Go validation and arithmetic, reviewed numeric precision policy, concurrency |
-| FR-005, FR-006 | Where findings and their citations appear, and what a missing state looks like | Approved regulatory sources, versions, categories and the dilution basis |
-| FR-007 | A trial separate from a saved version, discarded or explicitly saved | The same pure engine over a server snapshot |
-| CER-002 | `insufficient data` as the honest answer, with its reason | The real engine returning the same answer for the same reason |
+| FR-001, FR-016–018 / waves 0–1 | Public pages, preset signup/verification/pending, mock MFA/reset, own rights, scoped admin and reasoned log query | Reviewed notices/consent, Go sessions/CSRF/server authorization, rights execution, durable logs, email/backup/incident controls |
+| FR-002–007, FR-009–011, FR-015 / wave 2 | Search/create/edit, exact decimal input validation, immutable versions, what-if, missing reasons, exact product share and batch grams, composition by odour family, per-material evolution state, evidence list/tree | Concurrent server versioning, approved models/data/rules/uncertainty and official Go results |
+| FR-008, FR-012–013 / wave 3 | Pinned batch, explicit instrument/lots, append-only fixture readings, WARN/BLOCK/remediation, printable previews and text downloads | Approved targets/conversions/tolerances, actual measurements, official mixing-sheet/label PDF and export logging |
+| FR-005–006, FR-014 / waves 2, 4 | Per-row mock limit check after Evaluate against the fictional `DEMO-STD v1` table, with calculation, limit row and two separately reported mock supplier document sets (one with a mock certificate of conformity, one without); Thai FDA row not mocked; separate actual jurisdiction findings, document completeness and typed embedded-sample processing | Approved legal sources/category/dilution/thresholds, Go findings, storage/scanning, actual bytes, append-only SDS versions and authorization |
+| FR-019–020 / wave 5 | Opt-in synthetic missions, progress, dismissible static tip and FAQ | Reviewed tutorial scripts and own-progress service |
 
-The charts are hand-authored layout illustrations with no physical units, no model and no prediction behind them. They exist to show where a chart goes, not what it would say. The odour profile cannot be weighted by perception yet: the supplied sample carries no detection threshold at all, and the categorical strength has no approved numeric mapping, so the only honest weighting today is composition share by mass ([calculation-engine.md](../.docs/02-design/calculation-engine.md) §6.1).
+No panels, production approvals, client portal, SaaS billing, AI chat, reference editing, regulatory report export, notifications. Production dark mode remains deferred; the owner requested a light/dark appearance switch for this synthetic demo only. No real password, OTP, user upload or owner dataset is requested. Legal notice examples are not agreements. Charts are not predictions, measurements, confidence intervals or chemical rules. Mock limit results are not regulatory clearance, prohibited-material detection, a certificate or a production hard block. UI persona guards are not server security.
 
-No real password, dataset, document or measurement is requested anywhere in this demo, and nothing here is evidence that the engine, authentication or the backend exists.
+Input validation here demonstrates decimal-string handling and the 100% declaration contract. The 12-decimal UI limit is a bounded demo input choice, not a selected production numeric policy. The mock finished-product quantity is declared material percentage × declared dilution / 100, applied once with exact decimals (dilution validated exactly as greater than 0 and no more than 100%) and labelled as a local presentation calculation; it does not model constituent composition or replace server-owned quantities under rule 64. Actual scientific and regulatory evaluation still lack approved evidence. Mock findings do not enter saved formula versions or exports. PDF generation is not claimed: sample files are text/JSON, and print preview uses the browser's print dialog.
 
 ## Editing and checking
 
-`components/demo-app.tsx` owns the shell, navigation and the unsaved-changes guard. `formula-pages.tsx` owns both screens. `dropdown.tsx` provides the shared form menu. `app/globals.css` defines the tokens and the responsive shell; page styles sit next to their component. Fixtures are in `lib/model.ts` and decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
+`components/demo-app.tsx` owns navigation (the two groups and the roadmap banner), personas and dirty confirmation. `formula-pages.tsx`, `lab-pages.tsx` and `access-pages.tsx` own the workflows; the Formula editor owns Evaluate and clears the mock result on any edit. `limit-check.tsx` shows the mock Thai FDA / IFRA limit check; its exact-decimal comparison is in `lib/limit-check.ts`, its fictional limit tables in `lib/limit-check-fixtures.ts` and its official reading links in `lib/official-sources.ts`. `dropdown.tsx`/`dropdown.css` provide shared form menus; `persona-switcher.tsx` owns the three-group menu and nested permission preview. `theme-toggle.tsx` and `lib/theme.ts` own the local appearance preference and pre-paint bootstrap. `app/globals.css` defines light/dark semantic tokens and responsive shell; page styles live next to components. Pure fixtures/action mapping are in `lib/model.ts`, decimal validation in `lib/formula-validation.ts`. No external font, icon or chart service is used.
+
+`presentation-guide.tsx` and `lib/presentation-guide.ts` provide page-level notes; `analysis-explainer.tsx` provides contextual notes.
 
 ```powershell
-npm run typecheck
-npm test
-npm run build
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
 ```
 
-Tests cover the exact-sum contract and immutable version history for this demo only. They establish neither server authorisation nor scientific correctness. See [validation record](validation.md), [dependency review](dependency-review.md), [design decisions](design-decisions.md) and [prototype status](../.docs/02-design/prototype/prototype.md).
+Tests check exact sums, immutable version history, role boundaries and the mock limit-check states for this demo only. They do not establish Go authorization or scientific correctness. See [validation record](validation.md), [dependency review](dependency-review.md), [design decisions](design-decisions.md) and [prototype status](../.docs/02-design/prototype/prototype.md).

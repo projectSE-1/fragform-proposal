@@ -87,6 +87,8 @@ with a database handle in it, taking that out later touches everything.
 | Any deployment | Hosting approval is open, and an unauthenticated build must not be exposed |
 | Any AI or model feature | No generative feature in this MVP |
 
+The demo still shows several WON'T items, under a navigation group labelled **Roadmap preview · not in this build**, with a banner on every such page. That is presentation of where the product goes next, decided 2026-10-05 so a teammate's preview pages are kept rather than deleted. It does not move any item out of the WON'T column.
+
 If the owner asks for one of these during the build, the answer is that it goes on this list for
 now and is revisited after the 7th, and it gets recorded here rather than argued about again.
 

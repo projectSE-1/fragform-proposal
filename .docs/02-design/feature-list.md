@@ -71,8 +71,10 @@ security, legal-text and approved-infrastructure decisions.
 Outside this MVP: offline sync/desktop wrapping, reference-data management, formula comparison,
 graphical provenance rendering, R2 regulatory labels/report export/notification, full X4-S6
 audit dashboard, R3–R6, external-client portal/SaaS/orders, production/safety approvals,
-evaluation panels, AI mascot chat, notification bell and dark mode. Lab label/mixing PDFs,
+evaluation panels, AI mascot chat, notification bell and production dark mode. Lab label/mixing PDFs,
 complete provenance data and restricted local log query remain in scope.
+
+The owner-requested light/dark switch is implemented in the synthetic demo only; see [prototype status](prototype/prototype.md).
 
 The retained stack and API adaptation are in [tech-stack.md](tech-stack.md) and
 [api-contract.md](api-contract.md). [mvp-scope.md](mvp-scope.md) is the wave/ID baseline;

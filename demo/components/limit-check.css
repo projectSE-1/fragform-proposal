@@ -1,0 +1,104 @@
+/* AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted. */
+/* Mock limit check. Mirrors demo patterns: row tag = .formula-family scale, statuses = <Badge>,
+   figures = .formula-library-summary dividers, rows = .docs-check-item, disclosures = .analysis-explainer. */
+.limit-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap}
+.limit-tag-green{color:var(--green);background:var(--green-soft)}
+.limit-tag-red{color:var(--red);background:var(--red-soft)}
+.limit-tag-amber{color:var(--amber);background:var(--amber-soft)}
+.limit-tag-neutral{color:var(--muted);background:var(--subtle)}
+.limit-row-button{position:relative;display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 6px;min-height:44px;margin:0 -4px;padding:0 4px;border:0;border-radius:8px;background:none;color:var(--muted);text-align:left}
+.limit-row-value{display:inline-flex;align-items:center;gap:6px}
+.limit-row-button:hover .limit-tag{text-decoration:underline}
+.limit-row-button:hover .limit-row-chevron{color:var(--purple-dark)}
+/* Visible only in the narrow layout (column header hidden); screen-reader text elsewhere. */
+.limit-row-label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.formula-limit-inline{display:none}
+.formula-material-panel{container:limit-table/inline-size}
+@container limit-table (max-width:700px){
+  .formula-limit-col{display:none}
+  .formula-limit-inline{display:flex;margin-top:4px}
+  /* The caption always sits on its own line above the tag, so every row and every state (short "ผ่าน"
+     or long "ข้อมูลไม่เพียงพอ") has the same height and left edge. Caption + tag fill the 44px target. */
+  .formula-limit-inline .limit-row-button{flex-direction:column;flex-wrap:nowrap;align-items:flex-start;justify-content:center;gap:2px}
+  .formula-limit-inline .limit-row-label{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;font-size:11px;font-weight:600;line-height:1.5;color:var(--muted)}
+}
+
+.limit-summary{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;padding:14px 24px;border-top:1px solid var(--line)}
+.limit-summary-title{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0;font-size:12px}
+.limit-summary-title strong{font-weight:600}
+.limit-summary-counts{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.limit-summary .badge,.limit-dialog .badge{font-size:10px}
+.limit-summary-cause{flex-basis:100%;display:flex;align-items:flex-start;gap:6px;margin:0;font-size:12px;line-height:1.6;color:var(--ink);overflow-wrap:anywhere}
+.limit-summary-cause>svg{flex-shrink:0;margin-top:3px;color:var(--amber)}
+@media(max-width:600px){.limit-summary{padding:12px 15px}}
+
+.limit-dialog .formula-modal-actions{flex-wrap:wrap}
+/* The template's .button is 39–40px; the dialog's footer actions keep the 44px target at every width. */
+.limit-dialog .formula-modal-actions .button{min-height:44px}
+.limit-verdict{display:flex;flex-direction:column;gap:12px}
+.limit-verdict-head{display:flex;align-items:center;gap:12px}
+.limit-verdict-head>div{min-width:0}
+.limit-verdict-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;flex-shrink:0}
+.limit-verdict-icon-green{color:var(--green);background:var(--green-soft)}
+.limit-verdict-icon-red{color:var(--red);background:var(--red-soft)}
+.limit-verdict-icon-amber{color:var(--amber);background:var(--amber-soft)}
+.limit-verdict-icon-neutral{color:var(--muted);background:var(--subtle)}
+/* Inline flow, so on a phone the source text wraps after the MOCK badge instead of dropping below it. */
+.limit-source{margin:0 0 2px;font-size:12px;line-height:1.7;color:var(--muted);overflow-wrap:anywhere}
+.limit-source>.badge{margin-right:8px;vertical-align:1px}
+.limit-verdict h3{margin:0;font-size:17px;line-height:1.4}
+/* Focused only programmatically after "Evaluate now"; it is not a control. */
+.limit-verdict h3:focus,.limit-verdict h3:focus-visible{outline:none}
+.limit-figures{display:flex;margin:0}
+.limit-figures>div{flex:1;min-width:0}
+.limit-figures>div+div{margin-left:16px;padding-left:16px;border-left:1px solid var(--line)}
+.limit-figures dt{font-size:12px;color:var(--muted)}
+.limit-figures dd{margin:2px 0 0;font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+.limit-figures .limit-none{font-weight:500;color:var(--muted)}
+.limit-bar{position:relative;height:8px;border-radius:999px;background:var(--subtle)}
+.limit-bar-fill{position:absolute;inset:0 auto 0 0;border-radius:999px}
+.limit-bar-fill-green{background:var(--green)}
+.limit-bar-fill-red{background:var(--red);border-radius:999px 0 0 999px}
+.limit-bar-excess{position:absolute;top:0;bottom:0;border-radius:0 999px 999px 0;background:repeating-linear-gradient(135deg,var(--red) 0 3px,var(--surface) 3px 6px)}
+.limit-bar-mark{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;border-radius:1px;background:var(--ink);box-shadow:0 0 0 2px var(--surface)}
+.limit-detail{margin:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.limit-detail-muted{color:var(--muted)}
+/* Same treatment as .limit-summary-cause: the cause reads as the thing to fix. */
+.limit-detail-cause{display:flex;align-items:flex-start;gap:6px;color:var(--ink)}
+.limit-detail-cause>svg{flex-shrink:0;margin-top:4px;color:var(--amber)}
+
+.limit-status{margin:0;padding:0;list-style:none}
+.limit-status>li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.limit-status>li>div{min-width:0}
+.limit-status strong{display:block;font-size:13px;font-weight:600}
+.limit-status-note{display:block;margin-top:2px;font-size:12px;line-height:1.5;color:var(--muted)}
+.limit-status .badge{flex-shrink:0}
+
+.limit-more{border:1px solid var(--notice-border);border-radius:10px;background:var(--surface-alt);overflow:hidden}
+.limit-more-item+.limit-more-item{border-top:1px solid var(--line)}
+.limit-more-item>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:12px 15px;list-style:none;cursor:pointer;color:var(--purple-dark);font-size:13px;font-weight:600}
+.limit-more-item>summary::-webkit-details-marker{display:none}
+.limit-more-item>summary:hover{background:var(--purple-soft)}
+.limit-more-item>summary:focus-visible{outline-offset:-3px}
+.limit-more-label{display:flex;align-items:center;flex-wrap:wrap;gap:4px 9px;min-width:0}
+.limit-more-hint{font-size:11px;font-weight:400;color:var(--muted)}
+.limit-more-item[open]>summary>.limit-more-chevron{transform:rotate(180deg)}
+.limit-more-body{padding:2px 15px 15px;font-size:13px;line-height:1.65}
+.limit-more-note{margin:0 0 10px;font-size:12px;line-height:1.6;color:var(--muted)}
+.limit-more-body code{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.limit-basis{display:grid;gap:12px;margin:0}
+.limit-basis dt{margin-bottom:2px;font-size:12px;font-weight:600;color:var(--purple-dark)}
+.limit-basis dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.limit-basis-note{display:block;font-size:12px;color:var(--muted)}
+.limit-suppliers{margin:0;padding:0;list-style:none}
+.limit-suppliers>li{padding:12px 0;border-top:1px solid var(--line)}
+.limit-suppliers>li:last-child{padding-bottom:0}
+.limit-supplier-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 10px}
+.limit-supplier-head strong{font-size:13px;font-weight:600}
+.limit-supplier-docs{display:flex;flex-wrap:wrap;margin:2px 0 6px;padding:0;list-style:none;font-size:12px;color:var(--muted)}
+/* The dot ends the previous item, so a wrapped line never starts with a stray bullet. */
+.limit-supplier-docs li:not(:last-child)::after{content:"·";content:"·"/"";padding:0 6px}
+.limit-supplier-finding{margin:0;overflow-wrap:anywhere}
+.limit-supplier-finding code{display:block;margin-top:2px}
+.limit-official{display:flex;flex-direction:column;align-items:flex-start}
+.limit-official a{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-weight:600}

@@ -22,6 +22,10 @@ vendor/
 
 lecturer-material/
 
+# Python bytecode from local skill scripts
+__pycache__/
+*.pyc
+
 # OS / editor
 .DS_Store
 Thumbs.db

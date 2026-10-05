@@ -2,15 +2,16 @@
 'use client';
 import {createContext, useContext} from 'react';
 import type {Dispatch, SetStateAction} from 'react';
-import type {Formula, Page} from './model';
+import type {Formula, Page, Role} from './model';
 export type DemoContextValue = {
-  page:Page; navigate:(page:Page)=>void;
+  page:Page; navigate:(page:Page)=>void; role:Role; setRole:(role:Role)=>void;
   locale:'en'|'th'; t:(english:string,thai:string)=>string;
   formulas:Formula[]; setFormulas:Dispatch<SetStateAction<Formula[]>>;
   selectedId:string; selectFormula:(id:string)=>void;
   notify:(message:string)=>void;
   reset:()=>void;
   dirty:boolean; setDirty:(value:boolean)=>void;
+  authIntent:'reset'|'recovery'|null; setAuthIntent:(intent:'reset'|'recovery'|null)=>void;
 };
 export const DemoContext = createContext<DemoContextValue|null>(null);
 export function useDemo() {
