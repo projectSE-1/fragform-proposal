@@ -3,7 +3,7 @@
 import {useEffect, useId, useState} from 'react';
 import type {ReactNode} from 'react';
 import type {Ingredient, FormulaVersion, Formula} from '../lib/model';
-import {appendVersion, can, downloadDemo, materials, weightedProfile} from '../lib/model';
+import {can, downloadDemo, materials, weightedProfile} from '../lib/model';
 import type {DataSource, Weighting} from '../lib/model';
 import {mockOdour, mockWeighted} from '../lib/mock-odour';
 import {referenceCondition, simulate} from '../lib/evaporation';
@@ -79,7 +79,8 @@ function IngredientFields({draft,onChange,readOnly=false,prefix,limitCell}:Draft
 }
 
 export function FormulaLibrary() {
-  const {formulas,setFormulas,selectFormula,navigate,role,t,notify,setDirty}=useDemo();
+  const {formulas,createFormula,selectFormula,navigate,role,t,notify,setDirty}=useDemo();
+  const [busy,setBusy]=useState(false);
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState('all');
   const [creating,setCreating]=useState(false);
@@ -89,14 +90,14 @@ export function FormulaLibrary() {
   const write=can(role,'formula.write');
   const filtered=formulas.filter(formula=>(`${formula.name} ${formula.code}`).toLowerCase().includes(query.toLowerCase())&&(filter!=='multiple'||formula.versions.length>1));
   const close=()=>{setCreating(false);setDirty(false);setError(null);};
-  const create=()=>{
-    if(!can(role,'formula.write')) return;
+  const create=async()=>{
+    if(!can(role,'formula.write')||busy) return;
     if(!name.trim()){setError(['Enter a name for this demo formula.','ใส่ชื่อของสูตรจำลองนี้']);return;}
     const problem=validateContext(draft);
     if(problem){setError(validationCopy(problem));return;}
-    const id=`formula-demo-${Date.now()}`;
-    const next:Formula={id,name:name.trim(),code:`F-${String(formulas.length+1).padStart(3,'0')}`,updatedLabel:'Just now',versions:[{...cloneVersion(draft),id:`${id}-v1`,number:1,note:'Initial synthetic version'}]};
-    setFormulas(items=>[next,...items]);close();selectFormula(id);navigate('editor');notify(t('New synthetic formula created.','สร้างสูตรจำลองแล้ว'));
+    setBusy(true);const result=await createFormula(name.trim(),cloneVersion(draft));setBusy(false);
+    if(!result.ok){setError(result.error);return;}
+    close();selectFormula(result.value.id);navigate('editor');notify(t('New synthetic formula created.','สร้างสูตรจำลองแล้ว'));
   };
   return <>
     <PageHeader eyebrow={t('YOUR WORKSPACE','พื้นที่ทำงานของคุณ')} title={t('Formula library','คลังสูตร')} description={t('Your studies, saved as immutable versions.','สูตรของคุณ บันทึกเป็นเวอร์ชันที่แก้ไขไม่ได้')} actions={write&&<button className="button primary" onClick={()=>{setName('');setDraft(freshDraft());setCreating(true);}}><Icon name="plus" size={18}/>{t('New formula','สร้างสูตร')}</button>}/>
@@ -105,7 +106,7 @@ export function FormulaLibrary() {
     {filtered.length?<div className="table-wrap"><table className="data-table formula-library-table"><caption className="sr-only">{t('Saved synthetic formulas','สูตรจำลองที่บันทึกไว้')}</caption><thead><tr><th scope="col">{t('Formula','สูตร')}</th><th scope="col">{t('Latest version','เวอร์ชันล่าสุด')}</th><th scope="col">{t('Materials','วัตถุดิบ')}</th><th scope="col">{t('Updated','อัปเดตล่าสุด')}</th><th scope="col"><span className="sr-only">{t('Open','เปิด')}</span></th></tr></thead><tbody>{filtered.map(formula=>{const latest=formula.versions[formula.versions.length-1];return <tr key={formula.id}><td><button className="formula-title-link" onClick={()=>{selectFormula(formula.id);navigate('editor');}}>{formula.name}</button><span className="small muted formula-material-id">{formula.code} · {t('Synthetic study','สูตรศึกษาจำลอง')}</span></td><td><Badge tone="purple">v{latest.number}</Badge><span className="small muted formula-version-count">{t(`${formula.versions.length} snapshots`,`สแนปช็อต ${formula.versions.length} รายการ`)}</span></td><td>{latest.ingredients.length}</td><td className="muted">{timeLabel(formula.updatedLabel,t)}</td><td><button className="button ghost" aria-label={t(`Open ${formula.name}`,`เปิด ${formula.name}`)} onClick={()=>{selectFormula(formula.id);navigate('editor');}}>{t('Open','เปิด')}<Icon name="arrow" size={17}/></button></td></tr>;})}</tbody></table></div>:<EmptyState title={t('No matching formulas','ไม่พบสูตรที่ตรงกัน')} description={t('Try another search or show all formulas.','ลองค้นหาใหม่หรือแสดงสูตรทั้งหมด')} action={<button className="button secondary" onClick={()=>{setQuery('');setFilter('all');}}>{t('Clear filters','ล้างตัวกรอง')}</button>}/>}
     </Panel><p className="small muted formula-bottom-note">{t('Every material, formula and identity in this demo is invented. No owner dataset is included.','วัตถุดิบ สูตร และตัวตนทั้งหมดในเดโมนี้เป็นข้อมูลจำลอง ไม่มีชุดข้อมูลของเจ้าของรวมอยู่')}</p>
     {!write&&<Notice>{t('Your selected role can view formula snapshots. Formula creation and version saving require a formulation role.','บทบาทที่คุณเลือกไว้ดูสแนปช็อตสูตรได้ การสร้างสูตรและการบันทึกเวอร์ชันต้องใช้บทบาทที่แก้ไขสูตรได้')}</Notice>}
-    <Modal open={creating} onClose={close} title={t('Create a demo formula','สร้างสูตรจำลอง')}><div className="stack"><Notice>{t('Use invented names and materials only. This demo stores changes in memory, for this session.','ใช้ชื่อและวัตถุดิบจำลองเท่านั้น เดโมนี้เก็บการเปลี่ยนแปลงไว้ในหน่วยความจำเฉพาะเซสชันนี้')}</Notice><div className="field"><label className="field-label" htmlFor="new-formula-name">{t('Formula name','ชื่อสูตร')}</label><input className="input" id="new-formula-name" value={name} placeholder={t('e.g. Evening Study','เช่น Evening Study')} maxLength={100} onChange={e=>{setName(e.target.value);setDirty(true);}}/></div><ContextFields draft={draft} prefix="new" onChange={value=>{setDraft(value);setDirty(true);}}/><IngredientFields draft={draft} prefix="new" onChange={value=>{setDraft(value);setDirty(true);}}/>{error&&<div role="alert"><Notice tone="red">{t(...error)}</Notice></div>}<div className="formula-modal-actions"><button className="button secondary" onClick={close}>{t('Cancel','ยกเลิก')}</button><button className="button primary" onClick={create}>{t('Create formula','สร้างสูตร')}</button></div></div></Modal>
+    <Modal open={creating} onClose={close} title={t('Create a demo formula','สร้างสูตรจำลอง')}><div className="stack"><Notice>{t('Use invented names and materials only. Formulas are saved to a file on this computer; owner formulas do not belong here.','ใช้ชื่อและวัตถุดิบจำลองเท่านั้น สูตรจะถูกบันทึกเป็นไฟล์ในเครื่องนี้ ห้ามใส่สูตรจริงของเจ้าของ')}</Notice><div className="field"><label className="field-label" htmlFor="new-formula-name">{t('Formula name','ชื่อสูตร')}</label><input className="input" id="new-formula-name" value={name} placeholder={t('e.g. Evening Study','เช่น Evening Study')} maxLength={100} onChange={e=>{setName(e.target.value);setDirty(true);}}/></div><ContextFields draft={draft} prefix="new" onChange={value=>{setDraft(value);setDirty(true);}}/><IngredientFields draft={draft} prefix="new" onChange={value=>{setDraft(value);setDirty(true);}}/>{error&&<div role="alert"><Notice tone="red">{t(...error)}</Notice></div>}<div className="formula-modal-actions"><button className="button secondary" onClick={close}>{t('Cancel','ยกเลิก')}</button><button className="button primary" onClick={create}>{t('Create formula','สร้างสูตร')}</button></div></div></Modal>
   </>;
 }
 
@@ -227,7 +228,8 @@ function AnalysisPanels({draft,formula}:{draft:FormulaVersion;formula:Formula;fi
 }
 
 export function FormulaEditor() {
-  const {formulas,setFormulas,selectedId,role,t,navigate,notify,setDirty,dirty}=useDemo();
+  const {formulas,saveVersion,selectedId,role,t,navigate,notify,setDirty,dirty}=useDemo();
+  const [saving,setSaving]=useState(false);
   const formula=formulas.find(x=>x.id===selectedId)||formulas[0];
   const latest=formula?.versions[formula.versions.length-1];
   const [versionId,setVersionId]=useState(latest?.id||'');
@@ -259,7 +261,7 @@ export function FormulaEditor() {
   const startTrial=()=>{if(!reader)return;setDraft(cloneVersion(saved));setTrial(true);setDirty(false);setEvaluated(false);setFixture(false);notify(t('What-if started. Trial input is transient until you explicitly save a new version.','เริ่ม What-if แล้ว ข้อมูลทดลองเป็นข้อมูลชั่วคราวจนกว่าคุณจะกดบันทึกเวอร์ชันใหม่เอง'));};
   const evaluate=()=>{if(!can(role,'read'))return;const problem=validateContext(draft);setError(problem?validationCopy(problem):null);setFixture(false);setEvaluated(true);notify(problem?t('Review the highlighted input error.','ตรวจข้อผิดพลาดของข้อมูลที่ไฮไลต์ไว้'):t('Evaluation: insufficient data. No scientific output has been fabricated.','ผลประเมิน: ข้อมูลไม่เพียงพอ ไม่มีการแต่งผลลัพธ์ทางวิทยาศาสตร์ขึ้นมา'));};
   const beginSave=()=>{if(!writer)return;const problem=validateContext(draft);if(problem){setError(validationCopy(problem));return;}setError(null);setNote('');setSaveOpen(true);};
-  const save=()=>{if(!can(role,'formula.write'))return;if(!note.trim()){setError(['Add a version note explaining this synthetic change.','เพิ่มหมายเหตุเวอร์ชันเพื่ออธิบายการเปลี่ยนแปลงจำลองนี้']);return;}const problem=validateContext(draft);if(problem){setError(validationCopy(problem));return;}const next=appendVersion(formula,draft,note.trim());const version=next.versions[next.versions.length-1];setFormulas(items=>items.map(item=>item.id===formula.id?next:item));setVersionId(version.id);setDraft(cloneVersion(version));setSaveOpen(false);setDirty(false);setTrial(false);setEvaluated(false);setFixture(false);setError(null);notify(t(`Saved ${formula.code} v${version.number}. Earlier snapshots remain unchanged.`,`บันทึก ${formula.code} v${version.number} แล้ว สแนปช็อตก่อนหน้ายังคงเดิม`));};
+  const save=async()=>{if(!can(role,'formula.write')||saving)return;if(!note.trim()){setError(['Add a version note explaining this synthetic change.','เพิ่มหมายเหตุเวอร์ชันเพื่ออธิบายการเปลี่ยนแปลงจำลองนี้']);return;}const problem=validateContext(draft);if(problem){setError(validationCopy(problem));return;}setSaving(true);const result=await saveVersion(formula.id,draft,note.trim());setSaving(false);if(!result.ok){setError(result.error);return;}const version=result.value;setVersionId(version.id);setDraft(cloneVersion(version));setSaveOpen(false);setDirty(false);setTrial(false);setEvaluated(false);setFixture(false);setError(null);notify(t(`Saved ${formula.code} v${version.number}. Earlier snapshots remain unchanged.`,`บันทึก ${formula.code} v${version.number} แล้ว สแนปช็อตก่อนหน้ายังคงเดิม`));};
   return <>
     <div className="formula-breadcrumb"><button className="button ghost" onClick={()=>navigate('formulas')}><Icon name="back" size={17}/>{t('Formula library','คลังสูตร')}</button><span>/</span><span>{formula.code}</span></div>
     <PageHeader eyebrow={t('FORMULA WORKSPACE','พื้นที่สูตร')} title={formula.name} description={t('A careful space to formulate, experiment and understand.','พื้นที่สร้างสูตร ทดลอง และตรวจสอบผล')} actions={<button className="button secondary" onClick={()=>downloadDemo(`${formula.code}-v${saved.number}-synthetic.json`,{demo:true,warning:'Synthetic demonstration only. No scientific or regulatory result.',formulaCode:formula.code,formulaName:formula.name,snapshot:saved,analysis:{status:'insufficient_data',missing:['approved models','uncertainty policy','source rules']}})}><Icon name="download" size={17}/>{t('Export snapshot','ส่งออกสแนปช็อต')}</button>}/>

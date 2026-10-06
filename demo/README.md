@@ -26,7 +26,20 @@ npm.cmd run dev
 
 These Windows PowerShell examples use `npm.cmd` to select the command wrapper explicitly when `npm.ps1` is blocked. On macOS/Linux, use `npm` instead. Run installation/start commands inside `demo/`, where its package manifest and lockfile live.
 
-Open http://127.0.0.1:3000. It binds to loopback only. To build and run the standalone demo instead: `npm.cmd run build`, then `npm.cmd start`. The build is still a **synthetic demo**, never a production implementation of the perfumery product. Workflow changes exist only in memory and reset on refresh or Reset demo. The Light/Dark button in the top bar stores only `light` or `dark` under `fragrance-studio.theme` in this browser; refresh and Reset demo preserve that appearance choice. If storage is unavailable, switching still works for the open page. Switching pages preserves the current exercise. Pending access hides domain views; role switches only exercise presentation permissions.
+Open http://127.0.0.1:3000. It binds to loopback only.
+
+### Where formulas are saved
+
+Formulas and their versions are saved to `demo/data/store.json` on this computer, so they survive a refresh and a restart. Set `DEMO_DATA_DIR` to use another folder. The folder is gitignored and must never be committed.
+
+- **Atomic writes:** each save writes a temporary file and renames it over `store.json`, so a crash leaves the old file or the new one, never half of each.
+- **Backups:** the previous file is copied to `data/backups/` before every write; the newest 10 are kept. To undo, stop the server and copy a backup over `store.json`.
+- **Damaged file:** an unreadable `store.json` is kept as `store.corrupt-<time>.json`, and the newest readable backup is restored. The page says so once.
+- **Two tabs:** every save carries the revision it started from. If another tab saved first, the save is refused and the latest formulas are reloaded.
+- **Immutable versions:** the server can only create a formula, append a version or reset. No request can change a saved version.
+- **Reset demo** backs the file up, then reloads the seed formulas.
+
+Only the alpha workspace (formulas and versions) is saved. The roadmap pages still reset on refresh. Because of the `/api` routes, the demo needs `npm run dev` or `npm start`; it no longer works as static files. The file belongs to whoever runs the server: there is no login, and the server listens on 127.0.0.1 only, which is the only protection. Use invented formulas; owner formulas and the owner dataset do not go here. This store stands in for the Go + PostgreSQL backend and is removed when that exists. To build and run the standalone demo instead: `npm.cmd run build`, then `npm.cmd start`. The build is still a **synthetic demo**, never a production implementation of the perfumery product. Formula changes are saved to a local file (below); other workflow changes exist only in memory and reset on refresh or Reset demo. The Light/Dark button in the top bar stores only `light` or `dark` under `fragrance-studio.theme` in this browser; refresh and Reset demo preserve that appearance choice. If storage is unavailable, switching still works for the open page. Switching pages preserves the current exercise. Pending access hides domain views; role switches only exercise presentation permissions.
 
 ## Try the workflow
 

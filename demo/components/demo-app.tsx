@@ -2,8 +2,12 @@
 'use client';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {DemoContext, useDemo} from '@/lib/demo-context';
-import {can, initialFormulas} from '@/lib/model';
-import type {Page, Role} from '@/lib/model';
+import {appendVersion, can, initialFormulas} from '@/lib/model';
+import type {Formula, FormulaVersion, Page, Role} from '@/lib/model';
+import type {SaveResult} from '@/lib/demo-context';
+import {storeApi, StoreRequestError} from '@/lib/store-client';
+import type {StoreSnapshot} from '@/lib/store-client';
+import {localizeValidationMessage} from '@/lib/validation-messages';
 import {Badge, Icon, Modal, Notice, Panel} from './ui';
 import {FormulaEditor, FormulaLibrary} from './formula-pages';
 import {LabPage, CompliancePage, ReferencesPage} from './lab-pages';
@@ -36,6 +40,7 @@ export default function DemoApp(){
   const [locale,setLocale]=useState<'en'|'th'>('en');
   const [formulas,setFormulas]=useState(initialFormulas);
   const [selectedId,setSelectedId]=useState('formula-1');
+  const [store,setStore]=useState<{state:'loading'|'saved'|'offline';revision:number}>({state:'loading',revision:0});
   const [dirty,setDirtyState]=useState(false);
   const dirtyRef=useRef(false);
   const setDirty=useCallback((value:boolean)=>{dirtyRef.current=value;setDirtyState(value);},[]);
@@ -77,14 +82,46 @@ export default function DemoApp(){
   const notify=useCallback((message:string)=>{clearTimeout(toastTimer.current);setToast(message);toastTimer.current=setTimeout(()=>setToast(''),6000);},[]);
   // A toast is already resolved to the language it was raised in; close it on a language switch instead of showing stale text.
   useEffect(()=>{clearTimeout(toastTimer.current);setToast('');},[locale]);
+  // Read the saved formulas once. The editor remounts so it opens on the saved latest version.
+  const applySnapshot=useCallback((data:StoreSnapshot)=>{setFormulas(data.formulas);setStore({state:'saved',revision:data.revision});},[]);
+  useEffect(()=>{let live=true;storeApi.load().then(data=>{if(!live)return;applySnapshot(data);setEditorEpoch(x=>x+1);if(data.notice)notify(data.notice);}).catch(()=>{if(live)setStore(s=>({...s,state:'offline'}));});return()=>{live=false;};},[applySnapshot,notify]);
   function guarded(action:()=>void){if(dirtyRef.current){setPendingAction(()=>action);}else action();}
   function allowed(target:Page,nextRole=role){if(domainPages.includes(target))return can(nextRole,'read');return true;}
   function navigate(target:Page){if(target===page)return;guarded(()=>{setPage(allowed(target)?target:'dashboard');setMobileNav(false);setDirty(false);requestAnimationFrame(()=>{mainRef.current?.focus();window.scrollTo({top:0});});});}
   function setRole(next:Role){guarded(()=>{setCurrentRole(next);setDirty(false);if(!allowed(page,next))setPage('dashboard');const [nameEn,nameTh]=label(next);notify(t(`Demo persona: ${nameEn}. No real permissions changed.`,`บทบาทจำลอง: ${nameTh} ไม่มีการเปลี่ยนสิทธิ์จริง`));});}
+  // Turns a store refusal into a message. A stale revision reloads the list so the next try starts fresh.
+  async function storeFailure(error:unknown):Promise<readonly [string,string]>{
+    if(error instanceof StoreRequestError&&error.code==='stale'){try{applySnapshot(await storeApi.load());}catch{}return ['Another tab saved first. The latest formulas are loaded; your change was not saved, so make it again.','อีกแท็บบันทึกก่อน โหลดสูตรล่าสุดแล้ว การเปลี่ยนแปลงของคุณยังไม่ถูกบันทึก กรุณาทำอีกครั้ง'];}
+    if(error instanceof StoreRequestError&&error.code==='offline'){setStore(s=>({...s,state:'offline'}));return ['The local store is not reachable, so nothing was saved. Is the demo server still running?','เชื่อมต่อที่เก็บข้อมูลในเครื่องไม่ได้ จึงยังไม่ได้บันทึก เซิร์ฟเวอร์เดโมยังทำงานอยู่หรือไม่'];}
+    const message=error instanceof Error?error.message:'The change was not saved.';
+    return [message,localizeValidationMessage(message,'th')??message];
+  }
+  async function createFormula(name:string,version:FormulaVersion):Promise<SaveResult<Formula>>{
+    if(store.state==='offline'){
+      // Not saved anywhere: kept in this tab, as the demo behaved before the store existed.
+      const id=`formula-demo-${Date.now()}`;
+      const next:Formula={id,name,code:`F-${String(formulas.length+1).padStart(3,'0')}`,updatedLabel:'Just now',versions:[{...version,ingredients:version.ingredients.map(x=>({...x})),id:`${id}-v1`,number:1,createdLabel:'This session',note:'Initial synthetic version'}]};
+      setFormulas(items=>[next,...items]);return {ok:true,value:next};
+    }
+    try{const data=await storeApi.create(store.revision,name,version);applySnapshot(data);return {ok:true,value:data.formulas[0]};}
+    catch(error){return {ok:false,error:await storeFailure(error)};}
+  }
+  async function saveVersion(formulaId:string,version:FormulaVersion,note:string):Promise<SaveResult<FormulaVersion>>{
+    if(store.state==='offline'){
+      const formula=formulas.find(f=>f.id===formulaId);if(!formula)return {ok:false,error:['This formula no longer exists.','ไม่พบสูตรนี้แล้ว']};
+      const next=appendVersion(formula,version,note);setFormulas(items=>items.map(item=>item.id===formulaId?next:item));return {ok:true,value:next.versions.at(-1)!};
+    }
+    try{const data=await storeApi.appendVersion(store.revision,formulaId,version,note);applySnapshot(data);return {ok:true,value:data.formulas.find(f=>f.id===formulaId)!.versions.at(-1)!};}
+    catch(error){return {ok:false,error:await storeFailure(error)};}
+  }
   function selectFormula(id:string){guarded(()=>{setSelectedId(id);setEditorEpoch(x=>x+1);setPage('editor');setDirty(false);setMobileNav(false);requestAnimationFrame(()=>mainRef.current?.focus());});}
-  function reset(){guarded(()=>{setFormulas(initialFormulas());setSelectedId('formula-1');setPage('editor');setCurrentRole('formulator');setDirty(false);setEpoch(x=>x+1);setTip(true);notify(t('Demo reset. All changes were held only in this session.','รีเซ็ตเดโมแล้ว ข้อมูลที่แก้ไขอยู่เฉพาะในเซสชันนี้'));});}
+  function reset(){guarded(()=>{
+    const after=()=>{setSelectedId('formula-1');setPage('editor');setCurrentRole('formulator');setDirty(false);setEpoch(x=>x+1);setEditorEpoch(x=>x+1);setTip(true);};
+    if(store.state==='offline'){setFormulas(initialFormulas());after();notify(t('Demo reset in this tab. The local store is not reachable.','รีเซ็ตเดโมในแท็บนี้แล้ว เชื่อมต่อที่เก็บข้อมูลในเครื่องไม่ได้'));return;}
+    storeApi.reset().then(data=>{applySnapshot(data);after();notify(t('Demo reset. The previous formulas were kept as a backup file.','รีเซ็ตเดโมแล้ว สูตรก่อนหน้าถูกเก็บเป็นไฟล์สำรอง'));}).catch(async error=>notify(t(...await storeFailure(error))));
+  });}
   const current=navItems.find(x=>x.page===page);
-  const context={page,navigate,role,setRole,locale,t,formulas,setFormulas,selectedId,selectFormula,notify,reset,dirty,setDirty,authIntent,setAuthIntent};
+  const context={page,navigate,role,setRole,locale,t,formulas,setFormulas,selectedId,selectFormula,notify,reset,store,createFormula,saveVersion,dirty,setDirty,authIntent,setAuthIntent};
   return <DemoContext value={context}><a href="#main-content" className="skip-link">{t('Skip to content','ข้ามไปเนื้อหา')}</a><div className="app-shell">
     {mobileNav&&<button className="nav-scrim" aria-label={t('Close navigation','ปิดเมนู')} onClick={()=>setMobileNav(false)}/>}
     <aside role={mobileNav?'dialog':undefined} aria-modal={mobileNav?true:undefined} ref={sidebarRef} className={`sidebar ${mobileNav?'sidebar-open':''}`} aria-label={t('Main navigation','เมนูหลัก')}>
@@ -94,7 +131,7 @@ export default function DemoApp(){
       <div className="sidebar-bottom"><div className="sidebar-help"><span className="help-mark"><Icon name="spark"/></span><h3>{t('Your next great blend','เริ่มต้นสูตรถัดไป')}</h3><p>{t('Explore the workflow in a safe, synthetic sandbox.','ลองขั้นตอนงานด้วยข้อมูลจำลอง')}</p><button className="button secondary full-width" onClick={()=>navigate('tutorial')}>{t('Take a quick tour','เริ่มบทสอน')}<Icon name="arrow" size={16}/></button></div><button className="nav-item" onClick={()=>navigate('public')}><Icon name="globe" size={18}/>{t('About the platform','เกี่ยวกับระบบ')}</button><div className="sidebar-footnote">{t('MVP PREVIEW','ตัวอย่าง MVP')} <span>01</span></div></div>
     </aside>
     <header inert={mobileNav} className="topbar"><div className="topbar-left"><button ref={menuRef} className="icon-button mobile-menu" aria-label={t('Open navigation','เปิดเมนู')} aria-expanded={mobileNav} onClick={()=>setMobileNav(!mobileNav)}><Icon name="menu"/></button><span className="breadcrumb">{t('Workspace','พื้นที่ทำงาน')}<span>/</span><strong>{page==='editor'?t('Formula workspace','พื้นที่สูตร'):current?t(current.en,current.th):page==='auth'?t('Access walkthrough','ทดลองเข้าสู่ระบบ'):t('About','เกี่ยวกับระบบ')}</strong></span></div><div className="topbar-actions"><ThemeToggle/><button className="locale-button" onClick={()=>setLocale(locale==='en'?'th':'en')} aria-label={t('Switch language to Thai','เปลี่ยนภาษาเป็นอังกฤษ')}><Icon name="globe" size={15}/>{locale==='en'?'EN':'TH'}</button><button className="icon-button reset-button" aria-label={t('Reset demo','รีเซ็ตเดโม')} title={t('Reset demo','รีเซ็ตเดโม')} onClick={reset}><Icon name="refresh" size={18}/></button><PersonaSwitcher/></div></header>
-    <main inert={mobileNav} id="main-content" className="main-content" ref={mainRef} tabIndex={-1}><div className="demo-ribbon"><span><span className="demo-dot"/>{t('INTERACTIVE MVP','เดโม MVP')}<span className="ribbon-divider">/</span>{t('Synthetic data · changes reset on refresh','ข้อมูลจำลอง · รีเฟรชแล้วข้อมูลกลับค่าเริ่มต้น')}</span><div className="ribbon-actions"><Dropdown className="preview-select" aria-label={t('Preview display state','ทดลองสถานะหน้าจอ')} value={viewState} onValueChange={value=>setViewState(value as 'ready'|'loading'|'error')}><option value="ready">{t('Ready view','หน้าจอพร้อม')}</option><option value="loading">{t('Loading preview','ตัวอย่างกำลังโหลด')}</option><option value="error">{t('Error preview','ตัวอย่างข้อผิดพลาด')}</option></Dropdown><button onClick={()=>setTourInfo(true)}>{t('What you can try','ลองอะไรได้บ้าง')}<Icon name="info" size={14}/></button></div></div>
+    <main inert={mobileNav} id="main-content" className="main-content" ref={mainRef} tabIndex={-1}><div className="demo-ribbon"><span><span className="demo-dot"/>{t('INTERACTIVE MVP','เดโม MVP')}<span className="ribbon-divider">/</span>{store.state==='saved'?t(`Synthetic data · saved to a file on this computer · revision ${store.revision}`,`ข้อมูลจำลอง · บันทึกเป็นไฟล์ในเครื่องนี้ · รุ่น ${store.revision}`):store.state==='offline'?t('Synthetic data · NOT SAVED: local store unreachable, changes stay in this tab','ข้อมูลจำลอง · ยังไม่บันทึก: เชื่อมต่อที่เก็บข้อมูลไม่ได้ การแก้ไขอยู่เฉพาะในแท็บนี้'):t('Synthetic data · loading saved formulas…','ข้อมูลจำลอง · กำลังโหลดสูตรที่บันทึกไว้…')}</span><div className="ribbon-actions"><Dropdown className="preview-select" aria-label={t('Preview display state','ทดลองสถานะหน้าจอ')} value={viewState} onValueChange={value=>setViewState(value as 'ready'|'loading'|'error')}><option value="ready">{t('Ready view','หน้าจอพร้อม')}</option><option value="loading">{t('Loading preview','ตัวอย่างกำลังโหลด')}</option><option value="error">{t('Error preview','ตัวอย่างข้อผิดพลาด')}</option></Dropdown><button onClick={()=>setTourInfo(true)}>{t('What you can try','ลองอะไรได้บ้าง')}<Icon name="info" size={14}/></button></div></div>
       {viewState==='ready'&&<PresentationGuide/>}
       <div className="page-content" key={epoch} hidden={viewState!=='ready'}>{navItems.some(item=>item.page===page&&item.group==='roadmap')&&<Notice tone="amber">{t('Roadmap preview. This page is not part of the alpha build: it shows where the product goes next, with invented data and no working backend. See scope-lock.md.','ตัวอย่างแผนงาน หน้านี้ไม่อยู่ในงานรอบอัลฟา ใช้แสดงทิศทางของผลิตภัณฑ์ในอนาคต ด้วยข้อมูลสมมติและยังไม่มีระบบหลังบ้าน ดู scope-lock.md')}</Notice>}
         <div hidden={page!=='dashboard'}><Dashboard/></div>

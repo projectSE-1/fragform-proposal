@@ -3,3 +3,5 @@ node_modules/
 .next/
 *.tsbuildinfo
 .env*
+# Local JSON store (formulas, backups, corrupt copies). Never committed: it may hold real work.
+data/
