@@ -16,7 +16,7 @@ const explanations:Record<Topic,{purpose:Copy;benefit:Copy;demo:Copy;try:Copy}>=
   profile:{
     purpose:{en:'Show the formula grouped by odour family, such as Citrus, Floral and Woody, as a share of the concentrate by weight.',th:'แสดงสูตรแยกตามหมวดกลิ่น เช่น Citrus, Floral และ Woody เป็นสัดส่วนโดยน้ำหนักของหัวน้ำหอม'},
     benefit:{en:'A quick read of what the formula is mostly made of, before any perception model exists.',th:'อ่านได้เร็วว่าสูตรประกอบด้วยอะไรเป็นหลัก แม้ยังไม่มีโมเดลการรับรู้กลิ่น'},
-    demo:{en:'By mass is real arithmetic on your input. By odour units and by perceived strength need detection thresholds and an approved strength mapping, which the real dataset does not have yet, so they draw only with Data set to Mock.',th:'ตามมวลคำนวณจริงจากค่าที่กรอก ส่วนตามหน่วยกลิ่นและตามความแรงที่รับรู้ต้องใช้ค่าความเข้มข้นต่ำสุดที่ได้กลิ่นและการแปลงความแรงที่อนุมัติแล้ว ซึ่งข้อมูลจริงยังไม่มี จึงวาดได้เฉพาะเมื่อเลือกข้อมูลจำลอง'},
+    demo:{en:'Perceived strength (OAV) is the default: amount divided by detection threshold. The owner dataset has thresholds, but this public demo does not, so it draws only with Data set to Mock. By mass is real arithmetic on your input.',th:'ค่าเริ่มต้นคือความแรงที่รับรู้ (OAV): ปริมาณหารด้วยค่าความเข้มข้นต่ำสุดที่ได้กลิ่น ชุดข้อมูลของเจ้าของมีค่านี้ แต่เดโมสาธารณะนี้ไม่มี จึงวาดได้เฉพาะเมื่อเลือกข้อมูลจำลอง ส่วนตามมวลคำนวณจริงจากค่าที่กรอก'},
     try:{en:'Open View data to see the exact share behind each bar.',th:'กดดูข้อมูลเพื่อดูสัดส่วนที่แน่นอนของแต่ละแท่ง'},
   },
   evolution:{

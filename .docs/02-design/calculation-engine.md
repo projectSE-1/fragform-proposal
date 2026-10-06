@@ -94,7 +94,7 @@ pct_in_product = pct_in_formula * concentrate_in_product_pct / 100
 
 For percentage-declared input, `pct_in_formula` is the validated declaration rather than an unnecessary normalization. Do not reinterpret product dilution/concentration class as a hidden default percentage. Apply finished-product dilution exactly once, show both bases, and account for approved SKU/carrier/pre-dilution expansion. Missing dilution/category leaves dependent compliance values missing; independent declared formula shares remain visible. Density absent from the supplied data blocks a volume-to-mass conversion rather than licensing an assumption.
 
-**Quantity unit: grams. Team decision, 2026-10-04.** Checked against the supplied 10-substance sample: 34 columns, no density under any name. Mass quantities are therefore stored and declared in grams, and the unit field accepts no other value until sourced density observations exist. A millilitre quantity returns `MissingValue` naming the absent density rather than being converted. Supplier specification sheets do carry a relative density, but as a per-supplier specification range rather than a measurement of the material in hand, so it cannot back a `Quantity`; obtaining density remains the domain decision recorded in §9.
+**Quantity unit: grams. Team decision, 2026-10-04; confirmed by the owner, 2026-10-06.** Checked against the supplied 10-substance sample: 34 columns, no density under any name. Mass quantities are therefore stored and declared in grams, and the unit field accepts no other value until sourced density observations exist. A millilitre quantity returns `MissingValue` naming the absent density rather than being converted. Supplier specification sheets do carry a relative density, but as a per-supplier specification range rather than a measurement of the material in hand, so it cannot back a `Quantity`; obtaining density remains the domain decision recorded in §9.
 
 Every result links to its actual immutable input/source/model/rule versions and conditions. Error-budget contributors link through all provenance nodes to observations/documents/locators; MVP simplifies graph drawing to a navigable list/tree only. It does not delete nodes, collapse different predictions into a generic graph or hide unsupported assumptions. Missing-value reasons have their own explanation path. No unapproved proxy/substitution is introduced automatically.
 
@@ -110,21 +110,22 @@ Uncertainty propagation/coverage, sampling method, sensitivity shares, tier/conf
 
 ### 6.1 Odour weighting is selected per request, never substituted
 
-Team decision, 2026-10-04. `OdourWeighting` carries three registered implementations rather than one undecided choice. The caller names which one it wants, so the domain answer later changes a default instead of changing code.
+Team decision, 2026-10-04; option set and default set by the owner's answers, 2026-10-06. `OdourWeighting` carries two registered implementations. The caller names which one it wants, so a later domain answer changes a default instead of changing code.
 
 | id | What a bar height means | Needs | State |
 |---|---|---|---|
-| `mass` | Share of the concentrate by weight. A declared composition figure, presented as composition and never labelled as perceived strength | Declared item masses, always present | **Default.** Ships now; it is exact arithmetic on declared quantities, so it is a `Quantity`, not an estimate |
-| `odour_units` | Percentage divided by detection threshold, so a trace material with a very low threshold reads as large | `material_odor_properties` detection threshold | Returns `MissingValue` per material until the observations exist |
-| `strength` | Percentage weighted by the material's categorical odour strength | An approved numeric mapping for low/medium/high | Returns `MissingValue` until the domain mapping in §9 is approved |
+| `odour_units` | Perceived strength as an odour activity value (OAV): amount divided by detection threshold, so a trace material with a very low threshold reads as large | `material_odor_properties` detection threshold | **Default** (owner, 2026-10-06). The owner confirms the full dataset carries thresholds; a material without one returns `MissingValue` |
+| `mass` | Share of the concentrate by weight. A declared composition figure, presented as composition and never labelled as perceived strength | Declared item masses, always present | Always available; exact arithmetic on declared quantities, so it is a `Quantity`, not an estimate |
 
-Three rules hold for all three:
+**Removed 2026-10-06: categorical strength.** TGSC's low/medium/high odour strength is the source's own editorial label; TGSC does not publish how it assigns it, and no standard maps it to numbers, so any mapping would be invented. The owner asked for a principled basis, and OAV is the measure the flavour and fragrance literature uses for a compound's contribution to a mixture. The category stays stored as source text and is not used for weighting. OAV is linear in concentration while perceived intensity is not (Stevens' power law); it is the accepted first approximation, stated as such on the chart.
+
+Three rules hold for both:
 
 - **The engine never switches weighting on its own.** It serves exactly the one requested, and one whose inputs are absent returns `MissingValue` naming them. The toggle belongs to the user interface. Two charts drawn with different arithmetic must never look alike.
 - **The response reports per-weighting availability**, so the interface can present an option as unusable for this formula instead of drawing an empty chart.
 - **Partial families are marked, not hidden.** A material that has an odour type but lacks the chosen weighting's input is listed under its family and excluded from the height; a material with no odour type is not placed in a family at all and is reported as `insufficient data`. Each bar carries how many of its family's materials the height was built from, beside the number rather than in a footnote. A short bar reading as a weak family when it means absent data is the failure this prevents.
 
-**Coverage in the supplied sample, measured 2026-10-04**, structure only, no values: the TGSC detection threshold column is empty in 10 of 10 substances and the secondary threshold column holds 2 of 10, so `odour_units` cannot be computed from the current sample at all. Categorical odour strength is present in 10 of 10, so `strength` is blocked only by its mapping and not by its data. EU CosIng status is present in 6 of 10, so four substances legitimately return a missing regulatory state. Whether the full set is more complete is a question for the owner, not an assumption.
+**Coverage in the supplied sample, measured 2026-10-04**, structure only, no values: the TGSC detection threshold column is empty in 10 of 10 substances and the secondary threshold column holds 2 of 10, so `odour_units` cannot be computed from the current sample at all. EU CosIng status is present in 6 of 10, so four substances legitimately return a missing regulatory state. The owner confirmed on 2026-10-06 that the full set carries detection thresholds. Two checks remain for import: how many of the 100 substances actually have one, and in which medium and unit (air and water thresholds cannot be mixed in one chart).
 
 ### 6.2 Chart adjustability
 
@@ -142,7 +143,7 @@ The client-side adjustments require no new request when the response carries eac
 
 ### 6.3 Evaporation model is selected per request, conditions are fixed
 
-Team decision, 2026-10-05. `PhysicsModel` carries three registered options, chosen by a toggle above the evolution chart, the same way §6.1 handles weighting. None is approved by the owner yet; which one becomes the default is her decision.
+Team decision, 2026-10-05. `PhysicsModel` carries three registered options, chosen by a toggle above the evolution chart, the same way §6.1 handles weighting. The owner chose `raoult` as the default on 2026-10-06; the other two stay selectable.
 
 | id | What it computes | Inputs from the dataset |
 |---|---|---|
@@ -185,15 +186,16 @@ The upstream 10%/20% examples, instrument linearity assumptions, dilution formul
 | Trial request contract and snapshot overlay validation | FR-007 | Engineering team |
 | Density/calibration observations and canonical composition/dilution mapping | Volume/drop/carryover, finished-product comparisons | Domain owner |
 | Mixture/evaporation/perception model, Profile A/B and endpoint definitions | FR-009, FR-010 | Domain owner |
-| Detection-threshold observations, or confirmation that the full set has none | `odour_units` weighting only; `mass` is unaffected | Domain owner |
-| Numeric mapping for categorical odour strength | `strength` weighting only | Domain owner |
+| Detection-threshold medium and unit, and per-substance coverage in the full set | `odour_units` values; `mass` is unaffected | Checked on import; domain owner if mixed |
 | Uncertainty/coverage/tier/confidence/applicability/error-budget policy | CER-004, CER-005, estimated value reporting | Domain owner |
 | Approved regulatory rule versions/category coverage/non-numeric semantics, hard-block applicability and disclaimer | FR-005 | Domain/legal owner |
 | Material-group/pair source definitions and rules | Group/pair checks | Domain owner |
 | Instrument qualification/validity, WARN/BLOCK tolerances, pre-dilution and quantization | FR-013 | Domain owner |
 | Cache identity/persistence/progress and rights/log integration | Reliable orchestration and compliance evidence | Engineering team |
 
-**Closed 2026-10-04:** the quantity unit is grams (§5), and the odour weighting is selectable per request with `mass` as the shipped default (§6.1). Neither closes a domain question. The first records what the supplied data does and does not support; the second removes the odour chart from the critical path of a domain decision, because a composition share needs no perceptual model.
+**Closed 2026-10-06 by the owner:** grams confirmed (§5); the full set carries detection thresholds; the default weighting is perceived strength as OAV and the categorical-strength option is removed (§6.1); the default evaporation model is `raoult` (§6.3).
+
+**Closed 2026-10-04:** the quantity unit is grams (§5), and the odour weighting is selectable per request (§6.1). Neither closes a domain question. The first records what the supplied data does and does not support; the second removes the odour chart from the critical path of a domain decision, because a composition share needs no perceptual model.
 
 Old open questions about version creation and declared batch target are resolved at behavior level by the source MVP: explicit immutable saves and declared target mass. Their schema/validation still need implementation. Retaining a model interface is not completing a domain task. The earlier near-limit behavior cannot be assigned a numeric band; the adopted UI uses separate inconclusive/missing states, with additional warnings only if a sourced policy defines them.
 

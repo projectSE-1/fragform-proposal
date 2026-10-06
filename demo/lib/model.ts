@@ -88,7 +88,7 @@ function toNumber(value:string):number {const n=Number(value);return Number.isFi
 // The three odour weightings of calculation-engine.md 6.1. The caller names one and gets exactly
 // that one back; a weighting whose inputs are absent reports what is missing and draws nothing.
 // Nothing here ever substitutes mass for another weighting.
-export const weightings = ['mass','odour_units','strength'] as const;
+export const weightings = ['odour_units','mass'] as const;
 export type Weighting = typeof weightings[number];
 // 'real' is the supplied dataset, where only mass is computable today. 'mock' uses the invented
 // values in mock-odour.ts and is shown only when the viewer picks it, always labelled as mock.
@@ -97,8 +97,7 @@ export type FamilyBar = {family:string;color:string;value:number|null;used:numbe
 export type WeightedProfile = {weighting:Weighting;source:DataSource;available:boolean;missing:string|null;bars:FamilyBar[]};
 const weightingInput:Record<Weighting,string|null> = {
   mass: null,
-  odour_units: 'detection threshold (empty in 10 of 10 sample substances)',
-  strength: 'approved numeric mapping for low/medium/high odour strength',
+  odour_units: 'detection threshold (in the owner dataset, which is kept out of this public demo)',
 };
 export function weightedProfile(version:FormulaVersion, weighting:Weighting, source:DataSource='real'):WeightedProfile {
   const missing = weighting === 'mass' || source === 'mock' ? null : weightingInput[weighting];

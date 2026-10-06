@@ -324,11 +324,10 @@ default to Profile A/B side-by-side where the approved model supports both → i
   data is visibly missing, not a zero wedge/point or a guessed family.
 - Profile A/B labels/meaning and material-group aggregation require domain approval; the
   source's tier/proxy assumptions do not approve a local prediction method.
-- The weighting behind a bar height is requested explicitly and served exactly. Composition
-  share by mass is the default and ships, because it is arithmetic on declared quantities
-  rather than a perceptual claim, and it is labelled as composition. Odour-unit and
-  categorical-strength weightings return their reasoned missing state until the detection
-  threshold observations and the numeric strength mapping exist. The server never substitutes
+- The weighting behind a bar height is requested explicitly and served exactly. Perceived
+  strength as an odour activity value (amount divided by detection threshold) is the default;
+  composition share by mass is the other option and is labelled as composition. A material
+  without a detection threshold returns its reasoned missing state. The server never substitutes
   one weighting for another, and the response reports which weightings this formula can
   support so the control can present an unusable option as unavailable.
 - A material that carries an odour type but lacks the chosen weighting's input is listed under
@@ -338,7 +337,8 @@ default to Profile A/B side-by-side where the approved model supports both → i
 - Empty/unquantified/stale/error states do not resemble a successful chart.
 
 **Trace:** original 2026-09-10 chart direction; source R1-S4; owner direction; CER-004/005.
-Selectable weighting, default and partial-family display: team decision 2026-10-04,
+Selectable weighting and partial-family display: team decision 2026-10-04. OAV default and
+removal of the categorical-strength option: owner, 2026-10-06. Both
 designed in [calculation-engine.md](../02-design/calculation-engine.md) §6.1.
 
 ### FR-010 — Evaporation/Evolution Over Time
@@ -354,7 +354,8 @@ curves and uncertainty bands → change the displayed time range → inspect evi
   input-change and model-change indicators are separate.
 - Changing display range cannot silently change the model, seed, input version or data source.
 - The evaporation model is requested explicitly and served exactly: each material alone,
-  ideal mixture (Raoult) or measured tenacity. Conditions are one fixed, stated reference
+  ideal mixture (Raoult, the default chosen by the owner on 2026-10-06) or measured tenacity.
+  Conditions are one fixed, stated reference
   ([calculation-engine.md](../02-design/calculation-engine.md) §6.3).
 
 **Trace:** original 2026-09-10 curve direction; source R1-S3/S4; CER-002–005.
@@ -667,12 +668,10 @@ The following require actual information, not assumptions:
 | Scientific glossary, public copy/tutorial scripts/assets and accessibility review | Reviewed TH/EN content; FR-018–020, NFR-005 |
 | Representative performance targets and wrong-result report route/reviewer/retention | Team decision; NFR-002, LR4 |
 
-Detection-threshold observations and the numeric mapping for categorical odour strength are
-recorded as domain decisions under the first row. They gate the odour-unit and strength
-weightings only; the default composition-share weighting ships without them
-([calculation-engine.md](../02-design/calculation-engine.md) §6.1). The supplied 10-substance
-sample carries no detection threshold at all and carries categorical strength for every
-substance, so neither weighting is blocked by the same thing.
+The owner confirmed on 2026-10-06 that the full dataset carries detection thresholds, so the
+OAV weighting is computable once that data is imported; the supplied 10-substance sample
+carries none. The categorical-strength weighting is removed because no standard maps it to
+numbers ([calculation-engine.md](../02-design/calculation-engine.md) §6.1).
 
 Deferred: offline sync/desktop wrapping, reference-data management, R1-S6 formula comparison,
 graphical provenance renderer (all provenance data remains in scope), R2-S4–S6 regulatory
@@ -692,6 +691,9 @@ Prototype-only appearance addition, 2026-10-04: the owner requested a light/dark
 - **Team 2026-10-04:** quantity unit fixed to grams; odour weighting made selectable with a
   composition-share default. Both are recorded in the design documents and neither resolves a
   domain question.
+- **Owner 2026-10-06:** grams confirmed; the full dataset carries detection thresholds;
+  default odour weighting is perceived strength as OAV, categorical strength dropped; default
+  evaporation model is Raoult.
 - **Local rules:** privacy/log/agreement/IP/no-guessing requirements remain controlling.
   Source manual erasure/audit deferral is strengthened to retain those requirements.
 - **Implementation and tests:** not yet completed; follow links to current design/contract and
