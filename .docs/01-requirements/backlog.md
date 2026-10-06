@@ -53,6 +53,7 @@ history; the 2026-10-04 direction supersedes their view-only/no-signup/two-role 
 | FR-018 | Public overview/how-to/FAQ and versioned legal pages | Must · 0–1 |
 | FR-019 | Opt-in Q0–Q6 tutorial sandbox and own progress | Must · 5 |
 | FR-020 | Dismissible static mascot tips and FAQ search | Must · 5 |
+| FR-021 | Reference-data versions: import, check, activate and view, per category | Must · demo 2026-10-06 |
 | NFR-001 | Connected formula comprehension | Should · 2 |
 | NFR-002 | In-place evaluation feedback without reload/save gate | Should · 2 |
 | NFR-003 | Pending signup does not grant lab access | Must · 1 |
@@ -553,6 +554,30 @@ dismisses one/all tips → can reopen via help/preferences or start the related 
 
 **Trace:** source TUT/X7; owner direction; NFR-005/008, IP-004.
 
+### FR-021 — Reference-Data Versions
+
+**Behavior/flow:** a system administrator opens Reference data → picks a category (material data
+or regulatory limits) → checks a CSV upload → saves it as a new inactive version → activates it.
+Every role can read any version as a table and see, for one substance, every limit that names it.
+
+**Acceptance:**
+- Each category has a built-in mock version and up to ten uploaded versions; exactly one is active.
+  Formulas are evaluated against the active versions, and results name the version they used.
+- An upload is checked before saving: required columns, CAS format and check digit, duplicates,
+  restriction type and maximum, a named source on every limit, and per-column coverage. A file
+  with any error cannot be saved. Missing values stay empty; nothing is filled in.
+- Saving never activates. Versions are never edited; a correction is a new version. Only an
+  inactive upload can be deleted, and its file is kept as a backup.
+- A substance with no limit row shows "no limit data", never a pass.
+- User formulas never appear on this page.
+- Reference data stays on the computer where it was uploaded. The owner's real files are used only
+  on her own machine and never on a shared screen.
+
+**Trace:** owner request for a standalone tool that she can update herself, 2026-10-06 (team
+scope decision); dataset structure in [dataset-structure.md](../00-context/dataset-structure.md).
+Cell-by-cell editing stays out of scope. The demo's role check is a persona choice, not
+authorisation: real use by more than one person needs login, consent and logging (rule 26).
+
 ## 4. Non-Functional Requirements
 
 | ID | Requirement and verifiable acceptance |
@@ -673,7 +698,8 @@ OAV weighting is computable once that data is imported; the supplied 10-substanc
 carries none. The categorical-strength weighting is removed because no standard maps it to
 numbers ([calculation-engine.md](../02-design/calculation-engine.md) §6.1).
 
-Deferred: offline sync/desktop wrapping, reference-data management, R1-S6 formula comparison,
+Deferred: offline sync/desktop wrapping, reference-data cell editing (FR-021 covers import and
+version activation), R1-S6 formula comparison,
 graphical provenance renderer (all provenance data remains in scope), R2-S4–S6 regulatory
 label/export/notification, full X4-S6 audit dashboard (restricted local query remains in scope),
 R3–R6, external-client portal/SaaS billing/orders, production/safety approvals, evaluation
@@ -694,6 +720,8 @@ Prototype-only appearance addition, 2026-10-04: the owner requested a light/dark
 - **Owner 2026-10-06:** grams confirmed; the full dataset carries detection thresholds;
   default odour weighting is perceived strength as OAV, categorical strength dropped; default
   evaporation model is Raoult.
+- **Team 2026-10-06:** FR-021 reference-data versions added, at the owner's request for a
+  standalone tool she can update herself.
 - **Local rules:** privacy/log/agreement/IP/no-guessing requirements remain controlling.
   Source manual erasure/audit deferral is strengthened to retain those requirements.
 - **Implementation and tests:** not yet completed; follow links to current design/contract and

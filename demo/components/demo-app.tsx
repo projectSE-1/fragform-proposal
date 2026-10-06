@@ -10,7 +10,10 @@ import type {StoreSnapshot} from '@/lib/store-client';
 import {localizeValidationMessage} from '@/lib/validation-messages';
 import {Badge, Icon, Modal, Notice, Panel} from './ui';
 import {FormulaEditor, FormulaLibrary} from './formula-pages';
-import {LabPage, CompliancePage, ReferencesPage} from './lab-pages';
+import {LabPage, CompliancePage} from './lab-pages';
+import {ReferenceDataPage} from './reference-data';
+import {referenceApi} from '@/lib/reference-client';
+import type {ActiveReference} from '@/lib/reference-client';
 import {AccountPage, AdminPage, TutorialPage, PublicPage, AuthPage} from './access-pages';
 import {PersonaSwitcher} from './persona-switcher';
 import {Dropdown} from './dropdown';
@@ -21,7 +24,7 @@ const navItems:{page:Page;icon:string;en:string;th:string;group:string}[]=[
   {page:'formulas',icon:'flask',en:'Formula library',th:'คลังสูตร',group:'workspace'},
   {page:'lab',icon:'layers',en:'Lab workspace',th:'พื้นที่แล็บ',group:'roadmap'},
   {page:'compliance',icon:'shield',en:'Compliance & docs',th:'ข้อกำหนดและเอกสาร',group:'roadmap'},
-  {page:'references',icon:'book',en:'Reference library',th:'คลังข้อมูลอ้างอิง',group:'roadmap'},
+  {page:'references',icon:'book',en:'Reference data',th:'ข้อมูลอ้างอิง',group:'workspace'},
   {page:'tutorial',icon:'spark',en:'Getting started',th:'บทสอนเริ่มต้น',group:'roadmap'},
   {page:'account',icon:'user',en:'My account',th:'บัญชีของฉัน',group:'roadmap'},
   {page:'admin',icon:'users',en:'Team & roles',th:'ทีมและบทบาท',group:'roadmap'},
@@ -41,6 +44,9 @@ export default function DemoApp(){
   const [formulas,setFormulas]=useState(initialFormulas);
   const [selectedId,setSelectedId]=useState('formula-1');
   const [store,setStore]=useState<{state:'loading'|'saved'|'offline';revision:number}>({state:'loading',revision:0});
+  const [reference,setReference]=useState<ActiveReference|null>(null);
+  const reloadReference=useCallback(()=>{referenceApi.active().then(setReference).catch(()=>setReference(null));},[]);
+  useEffect(()=>{reloadReference();},[reloadReference]);
   const [dirty,setDirtyState]=useState(false);
   const dirtyRef=useRef(false);
   const setDirty=useCallback((value:boolean)=>{dirtyRef.current=value;setDirtyState(value);},[]);
@@ -121,7 +127,7 @@ export default function DemoApp(){
     storeApi.reset().then(data=>{applySnapshot(data);after();notify(t('Demo reset. The previous formulas were kept as a backup file.','รีเซ็ตเดโมแล้ว สูตรก่อนหน้าถูกเก็บเป็นไฟล์สำรอง'));}).catch(async error=>notify(t(...await storeFailure(error))));
   });}
   const current=navItems.find(x=>x.page===page);
-  const context={page,navigate,role,setRole,locale,t,formulas,setFormulas,selectedId,selectFormula,notify,reset,store,createFormula,saveVersion,dirty,setDirty,authIntent,setAuthIntent};
+  const context={page,navigate,role,setRole,locale,t,formulas,setFormulas,selectedId,selectFormula,notify,reset,store,reference,reloadReference,createFormula,saveVersion,dirty,setDirty,authIntent,setAuthIntent};
   return <DemoContext value={context}><a href="#main-content" className="skip-link">{t('Skip to content','ข้ามไปเนื้อหา')}</a><div className="app-shell">
     {mobileNav&&<button className="nav-scrim" aria-label={t('Close navigation','ปิดเมนู')} onClick={()=>setMobileNav(false)}/>}
     <aside role={mobileNav?'dialog':undefined} aria-modal={mobileNav?true:undefined} ref={sidebarRef} className={`sidebar ${mobileNav?'sidebar-open':''}`} aria-label={t('Main navigation','เมนูหลัก')}>
@@ -135,7 +141,7 @@ export default function DemoApp(){
       {viewState==='ready'&&<PresentationGuide/>}
       <div className="page-content" key={epoch} hidden={viewState!=='ready'}>{navItems.some(item=>item.page===page&&item.group==='roadmap')&&<Notice tone="amber">{t('Roadmap preview. This page is not part of the alpha build: it shows where the product goes next, with invented data and no working backend. See scope-lock.md.','ตัวอย่างแผนงาน หน้านี้ไม่อยู่ในงานรอบอัลฟา ใช้แสดงทิศทางของผลิตภัณฑ์ในอนาคต ด้วยข้อมูลสมมติและยังไม่มีระบบหลังบ้าน ดู scope-lock.md')}</Notice>}
         <div hidden={page!=='dashboard'}><Dashboard/></div>
-        {can(role,'read')&&<><div hidden={page!=='formulas'}><FormulaLibrary/></div><div hidden={page!=='editor'}><FormulaEditor key={`${selectedId}-${editorEpoch}`}/></div><div hidden={page!=='lab'}><LabPage/></div><div hidden={page!=='compliance'}><CompliancePage/></div><div hidden={page!=='references'}><ReferencesPage/></div></>}
+        {can(role,'read')&&<><div hidden={page!=='formulas'}><FormulaLibrary/></div><div hidden={page!=='editor'}><FormulaEditor key={`${selectedId}-${editorEpoch}`}/></div><div hidden={page!=='lab'}><LabPage/></div><div hidden={page!=='compliance'}><CompliancePage/></div><div hidden={page!=='references'}><ReferenceDataPage/></div></>}
         <div hidden={page!=='account'}><AccountPage/></div>
         <div hidden={page!=='admin'}><AdminPage/></div>
         <div hidden={page!=='tutorial'}><TutorialPage/></div><div hidden={page!=='public'}><PublicPage/></div><div hidden={page!=='auth'}><AuthPage/></div>

@@ -1,0 +1,35 @@
+/* Reference data page. Tables reuse .data-table; this file adds versions, upload, report and viewer. */
+.ref-page{display:flex;flex-direction:column;gap:20px}
+.ref-page .tabs{margin-bottom:0}
+.ref-category-desc{margin:-8px 0 0;max-width:80ch}
+.ref-sub{display:block;margin-top:3px}
+.ref-file{max-width:240px;word-break:break-word}
+.ref-num{font-variant-numeric:tabular-nums;text-align:right}
+.ref-actions{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.ref-actions .button{min-height:32px;padding:5px 11px;font-size:11px}
+.ref-confirm{display:inline-flex;gap:4px;align-items:center;font-size:11px;color:var(--red)}
+.button.danger{color:var(--red)}
+.ref-versions tr.ref-viewing td{background:var(--purple-soft)}
+.ref-upload-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.ref-file-pick{cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ref-report{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.ref-report-summary{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:12px}
+.ref-coverage{display:grid;gap:7px;max-width:620px}
+.ref-coverage>div{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:11px}
+.ref-bar{height:8px;background:var(--subtle);border-radius:4px;overflow:hidden}
+.ref-bar>span{display:block;height:100%;background:var(--purple);border-radius:4px}
+.ref-issues{max-height:280px;overflow:auto}
+.ref-viewer-tools .input{min-width:220px}
+.ref-table-wrap{max-height:560px;overflow:auto}
+.ref-table th{position:sticky;top:0;z-index:1;white-space:nowrap;vertical-align:bottom}
+.ref-table td{white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis;padding:10px 12px}
+.ref-fill{display:block;font-weight:400;letter-spacing:0;text-transform:none;margin-top:3px;color:var(--muted)}
+.ref-empty{color:var(--muted);opacity:.6}
+.ref-clickable{cursor:pointer}
+.ref-clickable:focus-visible td{outline:2px solid var(--purple);outline-offset:-2px}
+.ref-selected td{background:var(--purple-soft)!important}
+.ref-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ref-rules{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.ref-rules h3{font-size:14px;margin:0}
+.ref-rules h4{font-size:12px;margin:0 0 6px;color:var(--purple-dark)}
+@media(max-width:520px){.ref-viewer-tools .input{min-width:0;width:100%}.ref-coverage>div{grid-template-columns:1fr 64px}.ref-coverage .ref-bar{display:none}}

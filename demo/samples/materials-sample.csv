@@ -1,0 +1,9 @@
+CAS,Name (TGSC),TGSC Odor Type,MW (g/mol),Psat_25C_Pa,TGSC ODT,TGSC Tenacity (hours),EU CosIng,Note
+5989-27-5,Limonene,citrus,136.24,190,10,2,,"MOCK values except identity and MW"
+78-70-6,Linalool,floral,154.25,20,1,6,,"MOCK values except identity and MW"
+106-24-1,Geraniol,floral,154.25,4,0.5,24,,"MOCK values except identity and MW"
+80-56-8,alpha-Pinene,woody,136.24,600,5,1,,"MOCK values except identity and MW"
+928-96-1,cis-3-Hexen-1-ol,green,100.16,130,0.2,1,,"MOCK values except identity and MW"
+120-51-4,Benzyl benzoate,balsamic,212.24,0.03,,400,,"MOCK values; threshold left empty on purpose"
+121-33-5,Vanillin,sweet,152.15,0.03,0.05,400,,"MOCK values except identity and MW"
+97-53-0,Eugenol,spicy,164.20,3,0.3,48,,"MOCK values except identity and MW"

@@ -39,6 +39,12 @@ Formulas and their versions are saved to `demo/data/store.json` on this computer
 - **Immutable versions:** the server can only create a formula, append a version or reset. No request can change a saved version.
 - **Reset demo** backs the file up, then reloads the seed formulas.
 
+### Reference data
+
+**Reference data** (workspace menu) holds the system data the engine reads: material data and regulatory limits. Each category has a built-in mock version and up to ten uploaded CSV versions, and exactly one is active. Any role can read the tables; the System Admin persona can check, upload, activate and delete. An upload is checked first (columns, CAS check digit, duplicates, limit types, a source on every limit, coverage per column), saving never activates it, and deleted versions move to `data/backups/datasets/`. Files live in `data/reference.json` and `data/datasets/`.
+
+For practice and presentations use `samples/` (invented values; see `samples/README.md`). The owner's real files are uploaded only on her own computer and never shown on a shared screen.
+
 Only the alpha workspace (formulas and versions) is saved. The roadmap pages still reset on refresh. Because of the `/api` routes, the demo needs `npm run dev` or `npm start`; it no longer works as static files. The file belongs to whoever runs the server: there is no login, and the server listens on 127.0.0.1 only, which is the only protection. Use invented formulas; owner formulas and the owner dataset do not go here. This store stands in for the Go + PostgreSQL backend and is removed when that exists. To build and run the standalone demo instead: `npm.cmd run build`, then `npm.cmd start`. The build is still a **synthetic demo**, never a production implementation of the perfumery product. Formula changes are saved to a local file (below); other workflow changes exist only in memory and reset on refresh or Reset demo. The Light/Dark button in the top bar stores only `light` or `dark` under `fragrance-studio.theme` in this browser; refresh and Reset demo preserve that appearance choice. If storage is unavailable, switching still works for the open page. Switching pages preserves the current exercise. Pending access hides domain views; role switches only exercise presentation permissions.
 
 ## Try the workflow

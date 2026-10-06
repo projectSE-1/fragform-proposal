@@ -56,11 +56,11 @@ export const presentationGuides:Record<Page,PresentationGuide> = {
     boundary:['No file bytes are uploaded or scanned, and no safety or legal compliance is certified.','ไม่มีการอัปโหลดหรือสแกนไฟล์จริง และไม่ได้รับรองความปลอดภัยหรือการผ่านข้อกฎหมาย'],
   },
   references:{
-    title:['Reference library','คลังข้อมูลอ้างอิง'],
-    purpose:['Look up the sample materials, vehicles, categories, lots and instruments used by the demo.','ดูวัตถุดิบ พาหะ หมวดหมู่ ล็อต และเครื่องมือตัวอย่างที่เดโมใช้'],
-    benefit:['Gives a shared reference point for understanding the selections shown in other screens.','ช่วยอธิบายว่าตัวเลือกในหน้าต่าง ๆ อ้างถึงข้อมูลรายการใด'],
-    steps:[['Switch between the available reference categories.','สลับหมวดข้อมูลอ้างอิงที่มี'],['Inspect an invented material or instrument record.','ดูรายการวัตถุดิบหรือเครื่องมือสมมติ'],['Relate its identifier to a selection in the formula or lab screen.','เชื่อมรหัสรายการกับตัวเลือกในหน้าสูตรหรือแล็บ']],
-    boundary:['These are invented records, not the owner dataset or approved scientific reference data.','รายการเหล่านี้เป็นข้อมูลจำลอง ไม่ใช่ชุดข้อมูลของเจ้าของหรือข้อมูลอ้างอิงทางวิทยาศาสตร์ที่อนุมัติแล้ว'],
+    title:['Reference data','ข้อมูลอ้างอิง'],
+    purpose:['Choose which version of the material data and the regulatory limits the engine uses, upload a new version, and read any version as a table.','เลือกเวอร์ชันของข้อมูลวัตถุดิบและเกณฑ์ตามกฎหมายที่ระบบใช้ อัปโหลดเวอร์ชันใหม่ และดูข้อมูลแต่ละเวอร์ชันเป็นตาราง'],
+    benefit:['The owner can update her data without a developer, and every result can say which data version it came from.','เจ้าของอัปเดตข้อมูลได้เองโดยไม่ต้องพึ่งนักพัฒนา และทุกผลลัพธ์บอกได้ว่ามาจากข้อมูลเวอร์ชันไหน'],
+    steps:[['As System Admin, check samples/materials-sample-with-errors.csv: the check lists each bad row and refuses to save.','ใช้บทบาท System Admin ตรวจไฟล์ samples/materials-sample-with-errors.csv ระบบแสดงแถวที่ผิดและไม่ให้บันทึก'],['Upload samples/limits-sample.csv, then Activate it: uploads never switch on by themselves.','อัปโหลด samples/limits-sample.csv แล้วกดใช้งาน ไฟล์ที่อัปโหลดจะไม่เปิดใช้เอง'],['In Material data, select a substance to see every limit that names it, or "No limit data".','ในข้อมูลวัตถุดิบ เลือกสารเพื่อดูเกณฑ์ทั้งหมดที่เกี่ยวข้อง หรือข้อความว่าไม่มีข้อมูลเกณฑ์']],
+    boundary:['The sample files and the mock are invented; no row is a real IFRA, EU or Thai FDA limit. The owner\'s real files are uploaded only on her own computer and never shown on a shared screen.','ไฟล์ตัวอย่างและข้อมูลจำลองเป็นข้อมูลที่แต่งขึ้น ไม่มีแถวใดเป็นเกณฑ์จริงของ IFRA, EU หรือ อย. ไฟล์จริงของเจ้าของอัปโหลดเฉพาะในเครื่องของเจ้าของ และห้ามแสดงบนจอที่คนอื่นเห็น'],
   },
   account:{
     title:['My account','บัญชีของฉัน'],

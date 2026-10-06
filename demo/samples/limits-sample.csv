@@ -1,0 +1,11 @@
+CAS,Material name,Product category,Restriction type,Max % in finished product,Source,Amendment,Effective date,Citation
+5989-27-5,Limonene,Fine fragrance (demo category),restricted,10,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo
+5989-27-5,Limonene,Body lotion (demo category),restricted,3,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo
+5989-27-5,Limonene,Fine fragrance (demo category),restricted,8,FICTIONAL SAMPLE B (not a regulation),sample-1,,Invented for the demo; a second source for the same substance
+78-70-6,Linalool,Fine fragrance (demo category),restricted,5,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo
+78-70-6,Linalool,Body lotion (demo category),restricted,2,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo
+80-56-8,alpha-Pinene,Fine fragrance (demo category),restricted,5,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo
+106-24-1,Geraniol,Fine fragrance (demo category),restricted,1.5,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo
+928-96-1,cis-3-Hexen-1-ol,Fine fragrance (demo category),specification,,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo; purity specification only
+121-33-5,Vanillin,Body lotion (demo category),prohibited,,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo
+97-53-0,Eugenol,Fine fragrance (demo category),restricted,0.5,FICTIONAL SAMPLE A (not a regulation),sample-1,,Invented for the demo

@@ -5,7 +5,7 @@
 
 ## D1 — System context
 
-Public/pending access and the authorized lab boundary are different. The domain owner supplies reviewed data/models through approved infrastructure; a reference-data editor is outside this MVP.
+Public/pending access and the authorized lab boundary are different. The domain owner supplies reviewed data/models through approved infrastructure. A system administrator imports and activates reference-data versions (FR-021); cell-by-cell editing is outside this MVP.
 
 ```mermaid
 flowchart LR
@@ -18,7 +18,7 @@ flowchart LR
     STORE[(Tenant application data / evidence)]
     PUBLIC -->|public pages, auth, own account, demo tutorial| SYSTEM
     LAB -->|formulas, analysis, batches, compliance, documents| SYSTEM
-    ADMIN -->|scoped users / roles / restricted logs| SYSTEM
+    ADMIN -->|scoped users / roles / restricted logs; reference-data versions| SYSTEM
     EXPERT -->|supplies reviewed sources; no in-app editor| REFERENCE
     SYSTEM -->|loads approved snapshots| REFERENCE
     SYSTEM -->|authorized transactional writes / reads| STORE

@@ -34,6 +34,13 @@ build has nothing protecting a formula. Therefore:
   database, the seed, the fixtures or a screenshot (IP-002, rule 0.1).
 - **Local only.** It is not deployed, not exposed on a network, not demonstrated against anything
   but the seed. Hosting approval is open anyway (IP-004).
+
+**Amendment, 2026-10-06 (team decision).** The demo prototype gains two things beyond this lock:
+formulas saved to a local JSON file, and the Reference data page (FR-021). Neither changes the
+rule above for the alpha: the presentation and every team machine use the synthetic sample files
+in `demo/samples/` only. The owner may upload her own files on her own computer, where they stay
+in `demo/data/` (gitignored) and are never shown on a shared screen. The prototype's role check is
+a persona menu, not authorisation, so it must not be used by more than one person.
 - **The moment a login is added, three things ship in the same increment**: consent evidence
   before any personal-data write, the own-data rights endpoints, and the append-only log. Rule 26
   is explicit that logging is not a later hardening task. Nobody adds a sign-in form to this

@@ -14,6 +14,7 @@
 import {promises as fs} from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {backupFile, listFiles, renameWithRetry, writeJsonAtomic} from './fs-safe.ts';
 import type {Formula, FormulaVersion} from './model.ts';
 import {initialFormulas} from './model.ts';
 import {validateDemoContext} from './formula-validation.ts';
@@ -57,42 +58,12 @@ export function createStore({dir, now = () => new Date(), seed = initialFormulas
   const seedFile = (revision: number): StoreFile =>
     ({schemaVersion: SCHEMA_VERSION, revision, updatedAt: now().toISOString(), formulas: seed(), datasets: []});
 
-  // Windows can briefly lock a file that an editor or antivirus is reading; retry a few times.
-  async function renameWithRetry(from: string, to: string) {
-    for (let attempt = 0; ; attempt++) {
-      try { await fs.rename(from, to); return; }
-      catch (error) {
-        const code = (error as NodeJS.ErrnoException).code;
-        if (attempt >= 5 || !['EPERM', 'EBUSY', 'EACCES'].includes(code ?? '')) throw error;
-        await new Promise(resolve => setTimeout(resolve, 40 * (attempt + 1)));
-      }
-    }
-  }
-
-  // Write the whole file to a temporary name, flush it to disk, then rename it over the real one.
-  // A crash leaves either the old file or the new one, never half of each.
-  async function writeAtomic(data: StoreFile) {
-    await fs.mkdir(dir, {recursive: true});
-    const tmp = `${file}.${process.pid}.tmp`;
-    const handle = await fs.open(tmp, 'w');
-    try { await handle.writeFile(JSON.stringify(data, null, 2) + '\n', 'utf8'); await handle.sync(); }
-    finally { await handle.close(); }
-    await renameWithRetry(tmp, file);
-  }
-
-  async function listBackups(): Promise<string[]> {
-    try { return (await fs.readdir(backupDir)).filter(name => /^store-.+\.json$/.test(name)).sort(); }
-    catch { return []; }
-  }
+  const listBackups = () => listFiles(backupDir, /^store-.+\.json$/);
+  const writeAtomic = (data: StoreFile) => writeJsonAtomic(file, data);
 
   // Copy the current file aside before it is replaced, and keep only the newest few copies.
-  async function backupCurrent(revision: number) {
-    try { await fs.access(file); } catch { return; }
-    await fs.mkdir(backupDir, {recursive: true});
-    await fs.copyFile(file, path.join(backupDir, `store-${fileStamp()}-r${String(revision).padStart(8, '0')}.json`));
-    const names = await listBackups();
-    for (const old of names.slice(0, Math.max(0, names.length - LIMITS.backups))) await fs.rm(path.join(backupDir, old), {force: true});
-  }
+  const backupCurrent = (revision: number) =>
+    backupFile(file, backupDir, `store-${fileStamp()}-r${String(revision).padStart(8, '0')}.json`, 'store-', LIMITS.backups);
 
   async function load(): Promise<StoreRead> {
     let text: string | undefined;

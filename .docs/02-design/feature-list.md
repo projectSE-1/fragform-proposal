@@ -68,7 +68,7 @@ uncertainty/tier methods, thresholds/calibrations and applicability. Missing inf
 invitation/erasure, file storage/scanning and deployment additionally need completed privacy,
 security, legal-text and approved-infrastructure decisions.
 
-Outside this MVP: offline sync/desktop wrapping, reference-data management, formula comparison,
+Outside this MVP: offline sync/desktop wrapping, reference-data cell editing (import and version activation are FR-021), formula comparison,
 graphical provenance rendering, R2 regulatory labels/report export/notification, full X4-S6
 audit dashboard, R3–R6, external-client portal/SaaS/orders, production/safety approvals,
 evaluation panels, AI mascot chat, notification bell and production dark mode. Lab label/mixing PDFs,

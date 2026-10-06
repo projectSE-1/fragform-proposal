@@ -3,6 +3,7 @@
 import {createContext, useContext} from 'react';
 import type {Dispatch, SetStateAction} from 'react';
 import type {Formula, FormulaVersion, Page, Role} from './model';
+import type {ActiveReference} from './reference-client';
 export type DemoContextValue = {
   page:Page; navigate:(page:Page)=>void; role:Role; setRole:(role:Role)=>void;
   locale:'en'|'th'; t:(english:string,thai:string)=>string;
@@ -12,6 +13,8 @@ export type DemoContextValue = {
   reset:()=>void;
   // Local JSON store. 'loading' until the first read; 'offline' means changes stay in this tab only.
   store:{state:'loading'|'saved'|'offline';revision:number};
+  // Active reference-data versions (materials, limits), or null before the first load / when offline.
+  reference:ActiveReference|null; reloadReference:()=>void;
   createFormula:(name:string,version:FormulaVersion)=>Promise<SaveResult<Formula>>;
   saveVersion:(formulaId:string,version:FormulaVersion,note:string)=>Promise<SaveResult<FormulaVersion>>;
   dirty:boolean; setDirty:(value:boolean)=>void;
