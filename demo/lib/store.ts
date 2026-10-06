@@ -18,6 +18,13 @@ import {backupFile, listFiles, renameWithRetry, writeJsonAtomic} from './fs-safe
 import type {Formula, FormulaVersion} from './model.ts';
 import {initialFormulas} from './model.ts';
 import {validateDemoContext} from './formula-validation.ts';
+import {materials} from './model.ts';
+import {validCas} from './reference.ts';
+
+// A formula may name any built-in material or any valid CAS number. Whether that CAS is in the active
+// material data is shown in the workspace, not enforced here, so switching versions never makes a
+// saved formula unreadable.
+const knownMaterial = (id: string) => materials.some(m => m.id === id) || validCas(id);
 
 export const SCHEMA_VERSION = 1;
 export const LIMITS = {
@@ -172,7 +179,7 @@ function cleanDraft(value: unknown): Omit<FormulaVersion, 'id' | 'number' | 'not
   });
   const draft = {vehicle: text(v.vehicle, 'Vehicle'), category: text(v.category, 'Application'),
     dilution: typeof v.dilution === 'string' && v.dilution.length <= LIMITS.amountLength ? v.dilution : '', ingredients};
-  const problem = validateDemoContext({...draft, id: 'check', number: 1, note: '', createdLabel: ''});
+  const problem = validateDemoContext({...draft, id: 'check', number: 1, note: '', createdLabel: ''}, knownMaterial);
   if (problem) throw new StoreError('invalid', problem);
   return draft;
 }
@@ -196,7 +203,7 @@ export function readFile(value: unknown): StoreFile {
     if (!Array.isArray(f.versions) || !f.versions.length || f.versions.length > LIMITS.versionsPerFormula) bad(`versions of ${f.id}`);
     f.versions.forEach((ver, i) => {
       if (!ver || typeof ver.id !== 'string' || ver.number !== i + 1 || typeof ver.note !== 'string' || typeof ver.createdLabel !== 'string') bad(`version ${i + 1} of ${f.id}`);
-      if (validateDemoContext(ver)) bad(`version ${i + 1} of ${f.id} fails validation`);
+      if (validateDemoContext(ver, knownMaterial)) bad(`version ${i + 1} of ${f.id} fails validation`);
     });
   }
   const datasets = v.datasets === undefined ? [] : v.datasets;

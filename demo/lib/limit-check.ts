@@ -4,6 +4,7 @@
 import type {FormulaVersion} from './model.ts';
 import {validateDemoContext} from './formula-validation.ts';
 import {demoLimitStandard, demoStandardLimits, demoSuppliers} from './limit-check-fixtures.ts';
+import type {LimitRule} from './reference.ts';
 
 // Shapes follow calculation-engine.md §7: pass / exceed / no_limit_defined / data_missing.
 export type LimitStatus='pass'|'exceed'|'no_limit_defined'|'data_missing';
@@ -26,6 +27,8 @@ export type LimitFinding={
   // Largest declared % in the formula that stays within the limit at this dilution, rounded down.
   maxDeclaredPct:string|null;
   maxDeclaredExact:boolean;
+  // Set for findings from reference-data rules: restricted, prohibited or specification.
+  ruleType?:string;
 };
 
 type Decimal={units:bigint;scale:number};
@@ -72,7 +75,7 @@ function compare(draft:FormulaVersion,materialId:string,limit:string|undefined,s
   const base:LimitFinding={status:'data_missing',materialId,application:draft.category,sourceId,sourceVersion,locator:null,missing:null,inputError:null,declaredPct:item?.amount??null,dilutionPct:draft.dilution,productPct:null,limitPct:null,differencePct:null,maxDeclaredPct:null,maxDeclaredExact:false};
   if(!item) return {...base,missing:'not_in_formula'};
   // A formula that fails the exact 100% / dilution contract has no product basis to compare.
-  const inputError=validateDemoContext(draft);
+  const inputError=validateDemoContext(draft,()=>true);
   if(inputError||!DECIMAL.test(item.amount)||!DECIMAL.test(draft.dilution)) return {...base,missing:'invalid_input',inputError:inputError||'Invalid declared amount or dilution.'};
   const productPct=productShare(item.amount,draft.dilution);
   if(limit===undefined) return noLimit==='no_limit_defined'?{...base,status:'no_limit_defined',productPct}:{...base,productPct,missing:noLimit};
@@ -96,5 +99,33 @@ export function checkSupplierCertificate(draft:FormulaVersion,materialId:string,
 export function summarizeStandardLimits(draft:FormulaVersion):Record<LimitStatus,number> {
   const counts:Record<LimitStatus,number>={pass:0,exceed:0,no_limit_defined:0,data_missing:0};
   for(const item of draft.ingredients) counts[checkStandardLimit(draft,item.materialId).status]++;
+  return counts;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Checks against the ACTIVE reference-data limits (FR-021), any source. A prohibited rule is a
+// maximum of 0, so any amount exceeds it. A specification rule has no number: it is reported as
+// no numeric limit, never as a pass.
+const SEVERITY:Record<LimitStatus,number>={exceed:3,data_missing:2,pass:1,no_limit_defined:0};
+
+export function checkRules(draft:FormulaVersion,materialId:string,rules:LimitRule[]):LimitFinding[] {
+  return rules.filter(r=>r.cas===materialId&&r.category===draft.category).map(rule=>{
+    const locator=rule.citation||`${rule.source} ${rule.amendment} / ${rule.category} / ${rule.cas}`;
+    const finding=compare(draft,materialId,rule.maxPct??undefined,rule.source,rule.amendment||'—',locator,'no_limit_defined');
+    return {...finding,ruleType:rule.type};
+  });
+}
+
+// One status for the row chip: the most serious finding across every source for this category.
+// No rule at all for this material and category is no_limit_defined, which is never a pass.
+export function checkActiveLimit(draft:FormulaVersion,materialId:string,rules:LimitRule[],sourceLabel:string):LimitFinding {
+  const findings=checkRules(draft,materialId,rules);
+  if(!findings.length) return {...compare(draft,materialId,undefined,sourceLabel,'—','','no_limit_defined')};
+  return findings.reduce((worst,f)=>SEVERITY[f.status]>SEVERITY[worst.status]?f:worst);
+}
+
+export function summarizeActiveLimits(draft:FormulaVersion,rules:LimitRule[],sourceLabel:string):Record<LimitStatus,number> {
+  const counts:Record<LimitStatus,number>={pass:0,exceed:0,no_limit_defined:0,data_missing:0};
+  for(const item of draft.ingredients) counts[checkActiveLimit(draft,item.materialId,rules,sourceLabel).status]++;
   return counts;
 }

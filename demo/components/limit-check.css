@@ -102,3 +102,4 @@
 .limit-supplier-finding code{display:block;margin-top:2px}
 .limit-official{display:flex;flex-direction:column;align-items:flex-start}
 .limit-official a{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-weight:600}
+.limit-all-rules tr.limit-rule-applies td{background:var(--purple-soft)}

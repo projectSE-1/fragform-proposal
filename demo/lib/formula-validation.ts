@@ -3,8 +3,8 @@ import type {Ingredient, FormulaVersion} from './model.ts';
 import {validateIngredients} from './model.ts';
 
 // Exact declaration checking is only a UI demonstration, never an official chemistry result.
-export function validateDemoDeclaration(items:Ingredient[]):string|null {
-  const error=validateIngredients(items);
+export function validateDemoDeclaration(items:Ingredient[],known?:(id:string)=>boolean):string|null {
+  const error=validateIngredients(items,known);
   if(error) return error;
   const places=Math.max(...items.map(x=>(x.amount.split('.')[1]||'').length));
   if(places>12) return 'Use no more than 12 decimal places for this demo input.';
@@ -21,8 +21,8 @@ function validDilution(value:string):boolean {
   const [integer,fraction='']=value.split('.');
   return BigInt(integer)<100n||(BigInt(integer)===100n&&!/[1-9]/.test(fraction));
 }
-export function validateDemoContext(draft:FormulaVersion):string|null {
+export function validateDemoContext(draft:FormulaVersion,known?:(id:string)=>boolean):string|null {
   if(!draft.vehicle.trim()||!draft.category.trim()) return 'Select a demo vehicle and application.';
   if(!validDilution(draft.dilution)) return 'Enter a declared product dilution greater than 0 and no more than 100%.';
-  return validateDemoDeclaration(draft.ingredients);
+  return validateDemoDeclaration(draft.ingredients,known);
 }

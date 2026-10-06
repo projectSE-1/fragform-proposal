@@ -9,7 +9,6 @@
 //
 // Replace, do not tune: the real values come from the owner dataset through the backend, and this
 // file is deleted.
-import type {Weighting} from './model.ts';
 
 export type MockOdour = {
   threshold: number | null;            // MOCK detection threshold, arbitrary units (null = left missing on purpose)
@@ -37,11 +36,3 @@ export const mockOdour: Record<string, MockOdour> = {
   'DEMO-M06':  {threshold: 0.5,  mw: 230, psat25: 0.02, tenacityHours: 400}, // fictional material, MOCK
 };
 
-// Height of one material under a weighting, for a given amount (% of concentrate).
-// Returns null when the MOCK input for that weighting is missing.
-export function mockWeighted(materialId: string, pct: number, weighting: Weighting): number | null {
-  const data = mockOdour[materialId];
-  if (weighting === 'mass') return pct;
-  if (!data) return null;
-  return data.threshold === null ? null : pct / data.threshold; // odour units (OAV)
-}

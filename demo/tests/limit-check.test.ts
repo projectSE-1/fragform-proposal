@@ -133,3 +133,18 @@ test('fixtures stay fictional: demo IDs only and no CAS-number-shaped strings',(
   const source=readFileSync(new URL('../lib/limit-check-fixtures.ts',import.meta.url),'utf8');
   assert.doesNotMatch(source,/\b\d{2,7}-\d{2}-\d\b/);
 });
+
+// Reference-data rules (FR-021). Invented rules on the fictional materials of the walkthrough formula.
+import {checkActiveLimit, checkRules} from '../lib/limit-check.ts';
+import type {LimitRule} from '../lib/reference.ts';
+const rule=(cas:string,type:string,maxPct:string|null,source='Demo source A'):LimitRule=>({cas,name:cas,category:'Fine fragrance (demo category)',type,maxPct,source,amendment:'1',effective:'',citation:''});
+test('reference rules: the most serious source wins, prohibited means any amount exceeds, a specification is never a pass',()=>{
+  const draft=seeded(); // DEMO-M01..04 at 40/30/20/10, dilution 20 → 8/6/4/2 in product
+  assert.equal(checkActiveLimit(draft,'DEMO-M01',[rule('DEMO-M01','restricted','10'),rule('DEMO-M01','restricted','5','Demo source B')],'x').status,'exceed');
+  assert.equal(checkRules(draft,'DEMO-M01',[rule('DEMO-M01','restricted','10'),rule('DEMO-M01','restricted','5','Demo source B')]).length,2);
+  assert.equal(checkActiveLimit(draft,'DEMO-M04',[rule('DEMO-M04','prohibited','0')],'x').status,'exceed');
+  assert.equal(checkActiveLimit(draft,'DEMO-M02',[rule('DEMO-M02','specification',null)],'x').status,'no_limit_defined');
+  assert.equal(checkActiveLimit(draft,'DEMO-M03',[],'x').status,'no_limit_defined');
+  assert.equal(checkActiveLimit(draft,'DEMO-M03',[{...rule('DEMO-M03','restricted','5'),category:'Body lotion (demo category)'}],'x').status,'no_limit_defined','another category does not apply');
+  assert.equal(checkActiveLimit(draft,'DEMO-M02',[rule('DEMO-M02','restricted','6')],'x').status,'pass','at the limit is within');
+});

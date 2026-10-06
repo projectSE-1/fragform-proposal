@@ -2,7 +2,6 @@
 // All records in this module are invented, public-safe fixtures. No scientific rules are encoded.
 // Roles and the pages below beyond 'formulas' and 'editor' belong to the roadmap preview, not to
 // the alpha build (scope-lock.md). They are kept so the preview pages can still be shown.
-import {mockWeighted} from './mock-odour.ts';
 export const roles = ['formulator', 'data_curator', 'safety_assessor', 'legal_reviewer', 'approver', 'org_admin', 'system_admin'] as const;
 export type Role = typeof roles[number] | 'pending';
 export type Page = 'dashboard' | 'formulas' | 'editor' | 'lab' | 'compliance' | 'references' | 'account' | 'admin' | 'tutorial' | 'public' | 'auth';
@@ -61,10 +60,12 @@ export function can(role:Role, action:'read'|'formula.write'|'lab.write'|'docume
   if (action === 'document.write') return ['formulator','data_curator','org_admin','system_admin'].includes(role);
   return ['org_admin','system_admin'].includes(role);
 }
-export function validateIngredients(items:Ingredient[]): string | null {
+// `known` says which material ids are allowed: the built-in list by default, the active reference
+// data in the workspace, any valid CAS or mock id on the server (lib/store.ts).
+export function validateIngredients(items:Ingredient[], known:(id:string)=>boolean = id=>materials.some(m=>m.id===id)): string | null {
   if (!items.length) return 'Add at least one demo material.';
   if (new Set(items.map(x=>x.materialId)).size !== items.length) return 'A material can appear only once in this demo input.';
-  if (items.some(x=>!materials.some(m=>m.id===x.materialId))) return 'Choose a listed demo material.';
+  if (items.some(x=>!known(x.materialId))) return 'Choose a listed demo material.';
   if (items.some(x=>!/^\d+(\.\d+)?$/.test(x.amount) || !Number.isFinite(Number(x.amount)) || Number(x.amount)<=0)) return 'Enter a positive decimal amount for every material.';
   return null;
 }
@@ -90,24 +91,23 @@ function toNumber(value:string):number {const n=Number(value);return Number.isFi
 // Nothing here ever substitutes mass for another weighting.
 export const weightings = ['odour_units','mass'] as const;
 export type Weighting = typeof weightings[number];
-// 'real' is the supplied dataset, where only mass is computable today. 'mock' uses the invented
-// values in mock-odour.ts and is shown only when the viewer picks it, always labelled as mock.
-export type DataSource = 'real' | 'mock';
 export type FamilyBar = {family:string;color:string;value:number|null;used:number;total:number;materials:{id:string;name:string;included:boolean}[]};
-export type WeightedProfile = {weighting:Weighting;source:DataSource;available:boolean;missing:string|null;bars:FamilyBar[]};
+export type WeightedProfile = {weighting:Weighting;available:boolean;missing:string|null;bars:FamilyBar[]};
+// What the profile needs from a material: its family, and for odour units its detection threshold.
+export type ProfileMaterial = {id:string;name:string;family:string;color:string;threshold:number|null};
 const weightingInput:Record<Weighting,string|null> = {
   mass: null,
-  odour_units: 'detection threshold (in the owner dataset, which is kept out of this public demo)',
+  odour_units: 'detection threshold (none of these materials has one in the active material data)',
 };
-export function weightedProfile(version:FormulaVersion, weighting:Weighting, source:DataSource='real'):WeightedProfile {
-  const missing = weighting === 'mass' || source === 'mock' ? null : weightingInput[weighting];
+export function weightedProfile(version:FormulaVersion, weighting:Weighting, list:ProfileMaterial[] = materials.map(m=>({...m, threshold:null}))):WeightedProfile {
   const groups = new Map<string,FamilyBar>();
   for (const item of version.ingredients) {
-    const material = materials.find(m => m.id === item.materialId);
+    const material = list.find(m => m.id === item.materialId);
     if (!material) continue;
     const bar = groups.get(material.family) ?? {family:material.family, color:material.color, value:null, used:0, total:0, materials:[]};
+    const pct = toNumber(item.amount);
     // A material lacking this weighting's input is listed under its family but adds nothing to the height.
-    const height = missing === null ? mockWeighted(material.id, toNumber(item.amount), weighting) : null;
+    const height = weighting === 'mass' ? pct : material.threshold !== null && material.threshold > 0 ? pct / material.threshold : null;
     bar.total += 1;
     bar.materials.push({id:material.id, name:material.name, included:height !== null});
     if (height !== null) { bar.value = (bar.value ?? 0) + height; bar.used += 1; }
@@ -115,5 +115,6 @@ export function weightedProfile(version:FormulaVersion, weighting:Weighting, sou
   }
   const bars = [...groups.values()].map(b => ({...b, value: b.value === null ? null : Number(b.value.toFixed(6))}))
     .sort((a,b) => (b.value ?? -1) - (a.value ?? -1) || a.family.localeCompare(b.family));
-  return {weighting, source, available: missing === null, missing, bars};
+  const available = weighting === 'mass' || bars.some(b => b.value !== null);
+  return {weighting, available, missing: available ? null : weightingInput[weighting], bars};
 }
