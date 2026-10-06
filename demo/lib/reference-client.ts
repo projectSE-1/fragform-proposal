@@ -10,7 +10,7 @@ export type ActiveReference = {revision: number} & Record<Category, {meta: Versi
 async function call<T>(url: string, role?: Role, body?: unknown): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(url, body === undefined ? {cache: 'no-store'} : {method: 'POST', body: JSON.stringify(body),
+    response = await fetch(url, body === undefined ? {cache: 'no-store', headers: {'X-Demo-Persona': role ?? ''}} : {method: 'POST', body: JSON.stringify(body),
       // The persona header is a demo role check, not security (lib/store-server.ts).
       headers: {'Content-Type': 'application/json', 'X-Demo-Persona': role ?? ''}});
   } catch { throw new StoreRequestError('offline', 'The local store is not reachable.'); }
@@ -20,9 +20,9 @@ async function call<T>(url: string, role?: Role, body?: unknown): Promise<T> {
 }
 
 export const referenceApi = {
-  index: () => call<ReferenceView>('/api/reference'),
+  index: (role: Role) => call<ReferenceView>('/api/reference', role),
   active: () => call<ActiveReference>('/api/reference/active'),
-  rows: (id: string) => call<{rows: DatasetRow[]}>(`/api/reference/${encodeURIComponent(id)}/rows`).then(d => d.rows),
+  rows: (role: Role, id: string) => call<{rows: DatasetRow[]}>(`/api/reference/${encodeURIComponent(id)}/rows`, role).then(d => d.rows),
   check: (role: Role, category: Category, text: string) => call<{report: CheckReport}>('/api/reference/check', role, {category, text}).then(d => d.report),
   upload: (role: Role, baseRevision: number, category: Category, fileName: string, text: string) =>
     call<ReferenceView>('/api/reference/upload', role, {baseRevision, category, fileName, text}),

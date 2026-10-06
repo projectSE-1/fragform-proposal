@@ -27,9 +27,10 @@ export type ReferenceIndex = {schemaVersion: 1; revision: number; active: Record
 export type ReferenceView = ReferenceIndex & {recovered?: string};
 
 const mockId = (c: Category) => `mock-${c}`;
+// The built-in version: invented values (lib/reference.ts mockRows), shown as "Built-in sample".
 function mockMeta(c: Category): VersionMeta {
   const rows = mockRows(c);
-  return {id: mockId(c), category: c, number: 0, label: 'Mock (built-in)', builtIn: true, fileName: null, sha256: null, uploadedAt: null,
+  return {id: mockId(c), category: c, number: 0, label: 'Built-in sample', builtIn: true, fileName: null, sha256: null, uploadedAt: null,
     rows: rows.length, coverage: columnsOf(c).map(column => ({column, filled: rows.filter(r => r[column]).length})), warningCount: 0};
 }
 const emptyIndex = (): ReferenceIndex =>

@@ -35,12 +35,12 @@ export function ReferenceDataPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const [ref, active] = await Promise.all([referenceApi.index(), referenceApi.active()]);
+      const [ref, active] = await Promise.all([referenceApi.index(role), referenceApi.active()]);
       setIndex(ref); setActiveRules(toLimitRules(active.limits.rows)); setLoadError('');
       if (ref.recovered) notify(ref.recovered);
       return ref;
     } catch (e) { setLoadError((e as Error).message); return null; }
-  }, [notify]);
+  }, [notify, role]);
   useEffect(() => { void refresh(); }, [refresh]);
 
   const versions = index?.versions.filter(v => v.category === category) ?? [];
@@ -49,7 +49,7 @@ export function ReferenceDataPage() {
   useEffect(() => {
     if (!viewing) return;
     let live = true; setRows(null);
-    referenceApi.rows(viewing.id).then(r => { if (live) setRows(r); }).catch(e => { if (live) { setRows([]); notify((e as Error).message); } });
+    referenceApi.rows(role, viewing.id).then(r => { if (live) setRows(r); }).catch(e => { if (live) { setRows([]); notify((e as Error).message); } });
     return () => { live = false; };
   }, [viewing?.id, notify]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -90,7 +90,7 @@ export function ReferenceDataPage() {
           <tbody>{versions.map(v => {
             const active = v.id === activeId;
             return <tr key={v.id} className={viewing?.id === v.id ? 'ref-viewing' : ''}>
-              <td><strong>{v.builtIn ? t('Mock (built-in)', 'ข้อมูลจำลอง (ในตัว)') : t(v.label, `อัปโหลด v${v.number}`)}</strong>{v.builtIn && <span className="small muted ref-sub">{t('Invented demo data', 'ข้อมูลสาธิตที่แต่งขึ้น')}</span>}</td>
+              <td><strong>{v.builtIn ? t('Built-in sample', 'ตัวอย่างในตัว') : t(v.label, `อัปโหลด v${v.number}`)}</strong></td>
               <td className="ref-file">{v.fileName ?? '—'}{v.sha256 && <span className="small muted ref-sub" title={v.sha256}>sha256 {v.sha256.slice(0, 12)}…</span>}</td>
               <td className="muted">{shortDate(v.uploadedAt)}</td>
               <td className="ref-num">{v.rows}</td>
@@ -146,13 +146,14 @@ function UploadPanel({category, index, onSaved}: {category: Category; index: Ref
   }
   const template = () => downloadDemo(`${category}-template.csv`, toCsv([[...columnsOf(category)]]));
   // The built-in mock as a CSV in the upload format: invented values, for practising the flow.
-  const sample = () => downloadDemo(`${category}-mock-sample.csv`, toCsv([[...columnsOf(category)], ...mockRows(category).map(r => columnsOf(category).map(c => r[c] ?? ''))]));
+  // Shown as "Sample" on screen.
+  const sample = () => downloadDemo(`${category}-sample.csv`, toCsv([[...columnsOf(category)], ...mockRows(category).map(r => columnsOf(category).map(c => r[c] ?? ''))]));
   const engineColumns = KEY_COLUMNS[category];
 
   return <Panel className="ref-upload">
     <div className="panel-heading"><div><h2>{t(`Upload a new version (v${next})`, `อัปโหลดเวอร์ชันใหม่ (v${next})`)}</h2>
       <p className="muted small">{t('CSV with the header row from the template. Check first; only a file with no errors can be saved. Saving never activates it.', 'ไฟล์ CSV ที่มีหัวตารางตามแม่แบบ ตรวจก่อน บันทึกได้เฉพาะไฟล์ที่ไม่มีข้อผิดพลาด และการบันทึกไม่ได้เปิดใช้งานทันที')}</p></div>
-      <div className="row"><button className="button ghost" onClick={template}><Icon name="download" size={15}/>{t('Template', 'แม่แบบ')}</button><button className="button ghost" onClick={sample}><Icon name="download" size={15}/>{t('Mock as CSV', 'ข้อมูลจำลองเป็น CSV')}</button></div></div>
+      <div className="row"><button className="button ghost" onClick={template}><Icon name="download" size={15}/>{t('Template', 'แม่แบบ')}</button><button className="button ghost" onClick={sample}><Icon name="download" size={15}/>{t('Sample as CSV', 'ตัวอย่างเป็น CSV')}</button></div></div>
     <div className="ref-upload-row">
       <label className="button secondary ref-file-pick"><Icon name="upload" size={16}/>{file ? file.name : t('Choose CSV file', 'เลือกไฟล์ CSV')}<input type="file" accept=".csv,text/csv" className="sr-only" onChange={e => void choose(e.currentTarget)}/></label>
       <button className="button secondary" disabled={!file || busy} onClick={check}>{t('Check file', 'ตรวจไฟล์')}</button>
@@ -204,7 +205,7 @@ function DataViewer({category, version, active, rows, activeRules, limitsLabel}:
   const selectedRow = rows?.find(r => r.CAS === selected);
 
   return <Panel className="ref-viewer">
-    <div className="panel-heading"><div><h2>{version.builtIn ? t('Mock (built-in)', 'ข้อมูลจำลอง (ในตัว)') : version.label} {active && <Badge tone="green">{t('Active', 'ใช้งานอยู่')}</Badge>}</h2>
+    <div className="panel-heading"><div><h2>{version.builtIn ? t('Built-in sample', 'ตัวอย่างในตัว') : version.label} {active && <Badge tone="green">{t('Active', 'ใช้งานอยู่')}</Badge>}</h2>
       <p className="muted small">{category === 'materials' ? t('Read only. Select a substance to see every limit that names it.', 'อ่านอย่างเดียว เลือกสารเพื่อดูเกณฑ์ทั้งหมดที่เกี่ยวข้อง') : t('Read only. Search by CAS to see every rule for one substance.', 'อ่านอย่างเดียว ค้นหาด้วย CAS เพื่อดูเกณฑ์ทั้งหมดของสารหนึ่งชนิด')}</p></div>
       <div className="row ref-viewer-tools">
         <label className="sr-only" htmlFor="ref-search">{t('Search', 'ค้นหา')}</label>

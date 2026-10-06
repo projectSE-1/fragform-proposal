@@ -1,6 +1,7 @@
 // AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted.
 // The active reference data as the formula workspace reads it. Before the first load, or when the
-// local server cannot be reached, the built-in mock is used and labelled as mock.
+// local server cannot be reached, the built-in mock is used. Its values are invented
+// (lib/mock-odour.ts, lib/limit-check-fixtures.ts); the screen calls it "Built-in sample".
 'use client';
 import {useMemo} from 'react';
 import {useDemo} from './demo-context';
@@ -14,7 +15,7 @@ export type ReferenceInUse = {
   known: (materialId: string) => boolean;
 };
 const label = (meta: {builtIn: boolean; label: string; fileName: string | null} | undefined) =>
-  !meta || meta.builtIn ? 'Mock (built-in)' : `${meta.label}${meta.fileName ? ` · ${meta.fileName}` : ''}`;
+  !meta || meta.builtIn ? 'Built-in sample' : `${meta.label}${meta.fileName ? ` · ${meta.fileName}` : ''}`;
 
 export function useReference(): ReferenceInUse {
   const {reference} = useDemo();

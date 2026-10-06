@@ -23,7 +23,7 @@ export function getReferenceStore() {
 // Real authorization comes with login (rule 26); this only keeps the demo's roles consistent.
 export function requireSystemAdmin(request: Request): Response | null {
   return request.headers.get('x-demo-persona') === 'system_admin' ? null
-    : refuse(403, 'forbidden', 'Changing reference data needs the system_admin persona.');
+    : refuse(403, 'forbidden', 'Reference data management needs the system_admin persona.');
 }
 
 const MAX_BODY = 64 * 1024;

@@ -8,8 +8,9 @@
 export const demoLimitStandard={
   id:'DEMO-STD',
   version:'v1',
-  labelEn:'Demo limit table (fictional, IFRA-style layout)',
-  labelTh:'ตารางเกณฑ์สมมติ (รูปแบบคล้ายตาราง IFRA)',
+  // Fictional: every value in this table is invented.
+  labelEn:'Demo limit table (IFRA-style layout)',
+  labelTh:'ตารางเกณฑ์สาธิต (รูปแบบคล้ายตาราง IFRA)',
 } as const;
 
 // Max % of each material in the finished product, per demo application.

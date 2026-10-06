@@ -15,6 +15,8 @@ export type DemoContextValue = {
   store:{state:'loading'|'saved'|'offline';revision:number};
   // Active reference-data versions (materials, limits), or null before the first load / when offline.
   reference:ActiveReference|null; reloadReference:()=>void;
+  // Presenter notes (the presentation guide and "Explain this section"), off unless switched on in the footer.
+  presenter:boolean;
   createFormula:(name:string,version:FormulaVersion)=>Promise<SaveResult<Formula>>;
   saveVersion:(formulaId:string,version:FormulaVersion,note:string)=>Promise<SaveResult<FormulaVersion>>;
   dirty:boolean; setDirty:(value:boolean)=>void;
