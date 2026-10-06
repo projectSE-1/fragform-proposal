@@ -353,6 +353,9 @@ curves and uncertainty bands → change the displayed time range → inspect evi
 - Formula version, model/rule/data versions and applicable seed accompany the analysis;
   input-change and model-change indicators are separate.
 - Changing display range cannot silently change the model, seed, input version or data source.
+- The evaporation model is requested explicitly and served exactly: each material alone,
+  ideal mixture (Raoult) or measured tenacity. Conditions are one fixed, stated reference
+  ([calculation-engine.md](../02-design/calculation-engine.md) §6.3).
 
 **Trace:** original 2026-09-10 curve direction; source R1-S3/S4; CER-002–005.
 
