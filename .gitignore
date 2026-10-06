@@ -20,6 +20,10 @@ vendor/
 .docs/00-context/data-10-example-subtance/
 lecturer-material-do-not-commit/
 
+# Python bytecode from local skill scripts
+__pycache__/
+*.pyc
+
 # OS / editor
 .DS_Store
 Thumbs.db

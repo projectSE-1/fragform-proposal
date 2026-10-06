@@ -1,0 +1,14 @@
+/* AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted. */
+.analysis-explainer{margin:0 0 20px;border:1px solid var(--notice-border);border-radius:10px;background:var(--surface-alt);overflow:hidden}
+.analysis-explainer summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:12px 15px;list-style:none;cursor:pointer;color:var(--purple-dark);font-size:13px;font-weight:600}
+.analysis-explainer summary::-webkit-details-marker{display:none}
+.analysis-explainer summary:hover{background:var(--purple-soft)}
+.analysis-explainer summary:focus-visible{outline-offset:-3px}
+.analysis-explainer-label{display:flex;align-items:center;gap:9px;flex-wrap:wrap;min-width:0}
+.analysis-explainer-hint{font-size:11px;font-weight:400;color:var(--muted)}
+.analysis-explainer[open]>summary>svg{transform:rotate(180deg)}
+.analysis-explainer dl{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;padding:17px 18px;margin:0;border-top:1px solid var(--line)}
+.analysis-explainer dl>div{min-width:0}
+.analysis-explainer dt{color:var(--purple-dark);font-size:12px;font-weight:600;margin-bottom:4px}
+.analysis-explainer dd{margin:0;font-size:13px;line-height:1.75;color:var(--ink);overflow-wrap:anywhere}
+@media(max-width:600px){.analysis-explainer dl{grid-template-columns:1fr;gap:16px;padding:16px}.analysis-explainer-hint{display:none}}

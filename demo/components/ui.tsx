@@ -1,7 +1,8 @@
 // AI Perfumery Engine; ownership follows the owner's existing agreement. No new licence granted.
 'use client';
-import {useEffect, useRef, useId} from 'react';
+import {useContext, useEffect, useRef, useId} from 'react';
 import type {ReactNode} from 'react';
+import {DemoContext} from '@/lib/demo-context';
 export function Icon({name, size=20, className=''}:{name:string;size?:number;className?:string}) {
   const paths:Record<string,ReactNode> = {
     grid:<><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
@@ -36,6 +37,13 @@ export function Icon({name, size=20, className=''}:{name:string;size?:number;cla
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">{paths[name]||paths.file}</svg>;
 }
+// Thai month abbreviations for fixture date labels such as "04 Oct 2026" or "02 Oct", applied at render time only.
+// The year stays CE; records, filters and downloads keep the English label. Other labels return undefined.
+const monthsTh:Record<string,string>={Jan:'ม.ค.',Feb:'ก.พ.',Mar:'มี.ค.',Apr:'เม.ย.',May:'พ.ค.',Jun:'มิ.ย.',Jul:'ก.ค.',Aug:'ส.ค.',Sep:'ก.ย.',Oct:'ต.ค.',Nov:'พ.ย.',Dec:'ธ.ค.'};
+export function thaiFixtureDate(label:string):string|undefined {
+  const match=/^(\d{1,2}) ([A-Z][a-z]{2})( \d{4})?$/.exec(label);
+  return match&&monthsTh[match[2]]?`${match[1]} ${monthsTh[match[2]]}${match[3]??''}`:undefined;
+}
 export function Badge({children,tone='neutral'}:{children:ReactNode;tone?:'neutral'|'purple'|'green'|'amber'|'red'}) {return <span className={`badge badge-${tone}`}>{children}</span>;}
 export function Panel({children,className=''}:{children:ReactNode;className?:string}) {return <section className={`panel ${className}`}>{children}</section>;}
 export function PageHeader({eyebrow,title,description,actions}:{eyebrow?:string;title:string;description?:string;actions?:ReactNode}) {return <div className="page-heading"><div>{eyebrow&&<div className="eyebrow">{eyebrow}</div>}<h1>{title}</h1>{description&&<p className="muted">{description}</p>}</div>{actions&&<div className="heading-actions">{actions}</div>}</div>;}
@@ -44,6 +52,8 @@ export function Notice({children,tone='neutral'}:{children:ReactNode;tone?:'neut
 export function Modal({open,onClose,title,children}:{open:boolean;onClose:()=>void;title:string;children:ReactNode}) {
   const ref=useRef<HTMLDialogElement>(null);
   const titleId=useId();
+  // Optional so the dialog still renders (in English) outside the demo provider.
+  const t=useContext(DemoContext)?.t??((english:string)=>english);
   useEffect(()=>{const el=ref.current;if(!el)return;if(open&&!el.open)el.showModal();else if(!open&&el.open)el.close();},[open]);
-  return <dialog ref={ref} className="modal" aria-labelledby={titleId} onCancel={onClose} onClick={e=>{if(e.target===e.currentTarget)onClose();}}><div className="modal-heading"><h2 id={titleId}>{title}</h2><button className="icon-button" aria-label="Close dialog" onClick={onClose}><Icon name="close"/></button></div>{open&&children}</dialog>;
+  return <dialog ref={ref} className="modal" aria-labelledby={titleId} onCancel={onClose} onClick={e=>{if(e.target===e.currentTarget)onClose();}}><div className="modal-heading"><h2 id={titleId}>{title}</h2><button className="icon-button" aria-label={t('Close dialog','ปิดหน้าต่าง')} onClick={onClose}><Icon name="close"/></button></div>{open&&children}</dialog>;
 }
