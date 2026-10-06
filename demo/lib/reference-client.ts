@@ -5,7 +5,8 @@ import type {Category, CheckReport, DatasetRow} from './reference';
 import type {ReferenceView, VersionMeta} from './reference-store';
 import {StoreRequestError} from './store-client';
 
-export type ActiveReference = {revision: number} & Record<Category, {meta: VersionMeta; rows: DatasetRow[]; problem: string | null}>;
+// meta is null when the admin has switched the category off.
+export type ActiveReference = {revision: number} & Record<Category, {meta: VersionMeta | null; rows: DatasetRow[]; problem: string | null}>;
 
 async function call<T>(url: string, role?: Role, body?: unknown): Promise<T> {
   let response: Response;
@@ -28,5 +29,7 @@ export const referenceApi = {
     call<ReferenceView>('/api/reference/upload', role, {baseRevision, category, fileName, text}),
   activate: (role: Role, baseRevision: number, category: Category, id: string) =>
     call<ReferenceView>('/api/reference/activate', role, {baseRevision, category, id}),
+  deactivate: (role: Role, baseRevision: number, category: Category) =>
+    call<ReferenceView>('/api/reference/deactivate', role, {baseRevision, category}),
   remove: (role: Role, baseRevision: number, id: string) => call<ReferenceView>('/api/reference/delete', role, {baseRevision, id}),
 };

@@ -150,6 +150,30 @@ export function mockRows(category: Category): DatasetRow[] {
   return rows;
 }
 
+// Built-in versions, two per category. "Sample" carries invented demo values (the mock rows above).
+// "Public" carries no invented value at all: for materials only public identity facts (CAS, name,
+// odour family, molecular weight), so every measured property stays empty; for limits no rule.
+export const BUILT_INS: {id: string; category: Category; label: string; labelTh: string; note: string; noteTh: string}[] = [
+  {id: 'mock-materials', category: 'materials', label: 'Built-in sample', labelTh: 'ตัวอย่างในตัว', note: 'Demo values for every property', noteTh: 'ค่าสาธิตครบทุกคุณสมบัติ'},
+  {id: 'public-materials', category: 'materials', label: 'Built-in public data', labelTh: 'ข้อมูลสาธารณะในตัว', note: 'Identity and molecular weight only; no measured properties', noteTh: 'มีเพียงชื่อ CAS และน้ำหนักโมเลกุล ไม่มีค่าที่วัด'},
+  {id: 'mock-limits', category: 'limits', label: 'Built-in sample', labelTh: 'ตัวอย่างในตัว', note: 'Demo rules for the walkthrough formula', noteTh: 'เกณฑ์สาธิตสำหรับสูตรตัวอย่าง'},
+  {id: 'public-limits', category: 'limits', label: 'Built-in empty', labelTh: 'ว่างในตัว', note: 'No rules: every substance shows no limit data', noteTh: 'ไม่มีเกณฑ์: ทุกสารแสดงว่าไม่มีข้อมูลเกณฑ์'},
+];
+// Public facts only: identity, a general odour family and molecular weight (g/mol).
+const PUBLIC_MATERIALS: [string, string, string, string][] = [
+  ['5989-27-5', 'Limonene', 'citrus', '136.24'], ['78-70-6', 'Linalool', 'floral', '154.25'],
+  ['106-24-1', 'Geraniol', 'floral', '154.25'], ['80-56-8', 'alpha-Pinene', 'woody', '136.24'],
+  ['928-96-1', 'cis-3-Hexen-1-ol', 'green', '100.16'], ['120-51-4', 'Benzyl benzoate', 'balsamic', '212.24'],
+  ['121-33-5', 'Vanillin', 'sweet', '152.15'], ['97-53-0', 'Eugenol', 'spicy', '164.20'],
+];
+export function builtInRows(id: string): DatasetRow[] | null {
+  if (id === 'mock-materials') return mockRows('materials');
+  if (id === 'mock-limits') return mockRows('limits');
+  if (id === 'public-materials') return PUBLIC_MATERIALS.map(([cas, name, type, mw]) => ({CAS: cas, 'Name (TGSC)': name, 'TGSC Odor Type': type, 'MW (g/mol)': mw}));
+  if (id === 'public-limits') return [];
+  return null;
+}
+
 // ---------------------------------------------------------------------------------------------
 // What the engine reads from the active versions.
 

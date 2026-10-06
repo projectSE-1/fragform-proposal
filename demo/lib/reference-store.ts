@@ -13,7 +13,7 @@ import {promises as fs} from 'node:fs';
 import path from 'node:path';
 import {createHash, randomUUID} from 'node:crypto';
 import {backupFile, renameWithRetry, writeJsonAtomic} from './fs-safe.ts';
-import {categories, checkDataset, columnsOf, LIMITS as DATA_LIMITS, mockRows} from './reference.ts';
+import {BUILT_INS, builtInRows, categories, checkDataset, columnsOf, LIMITS as DATA_LIMITS} from './reference.ts';
 import type {Category, CheckReport, DatasetRow} from './reference.ts';
 import {StoreError} from './store.ts';
 
@@ -22,16 +22,19 @@ export type VersionMeta = {
   id: string; category: Category; number: number; label: string; builtIn: boolean;
   fileName: string | null; sha256: string | null; uploadedAt: string | null; rows: number;
   coverage: {column: string; filled: number}[]; warningCount: number;
+  note?: string; labelTh?: string; noteTh?: string;
 };
-export type ReferenceIndex = {schemaVersion: 1; revision: number; active: Record<Category, string>; versions: VersionMeta[]};
+// active[category] is null when the admin has switched every version of that category off.
+export type ReferenceIndex = {schemaVersion: 1; revision: number; active: Record<Category, string | null>; versions: VersionMeta[]};
 export type ReferenceView = ReferenceIndex & {recovered?: string};
 
 const mockId = (c: Category) => `mock-${c}`;
-// The built-in version: invented values (lib/reference.ts mockRows), shown as "Built-in sample".
-function mockMeta(c: Category): VersionMeta {
-  const rows = mockRows(c);
-  return {id: mockId(c), category: c, number: 0, label: 'Built-in sample', builtIn: true, fileName: null, sha256: null, uploadedAt: null,
-    rows: rows.length, coverage: columnsOf(c).map(column => ({column, filled: rows.filter(r => r[column]).length})), warningCount: 0};
+const isBuiltIn = (id: string, c?: Category) => BUILT_INS.some(b => b.id === id && (!c || b.category === c));
+function builtInMeta(b: typeof BUILT_INS[number]): VersionMeta {
+  const rows = builtInRows(b.id) ?? [];
+  return {id: b.id, category: b.category, number: 0, label: b.label, labelTh: b.labelTh, note: b.note, noteTh: b.noteTh, builtIn: true,
+    fileName: null, sha256: null, uploadedAt: null, rows: rows.length,
+    coverage: columnsOf(b.category).map(column => ({column, filled: rows.filter(r => r[column]).length})), warningCount: 0};
 }
 const emptyIndex = (): ReferenceIndex =>
   ({schemaVersion: 1, revision: 0, active: {materials: mockId('materials'), limits: mockId('limits')}, versions: []});
@@ -40,7 +43,7 @@ function readIndex(value: unknown): ReferenceIndex {
   const bad = (why: string): never => { throw new StoreError('invalid', `Reference index: ${why}`); };
   const v = value as ReferenceIndex;
   if (!v || v.schemaVersion !== 1 || !Number.isInteger(v.revision) || !v.active || !Array.isArray(v.versions)) bad('shape');
-  for (const c of categories) if (typeof v.active[c] !== 'string') bad(`active ${c}`);
+  for (const c of categories) if (v.active[c] !== null && typeof v.active[c] !== 'string') bad(`active ${c}`);
   for (const m of v.versions) if (!m || typeof m.id !== 'string' || !categories.includes(m.category) || !Number.isInteger(m.number)) bad('version');
   return v;
 }
@@ -69,7 +72,7 @@ export function createReferenceStore({dir, now = () => new Date()}: {dir: string
     }
   }
   const view = (index: ReferenceIndex): ReferenceView =>
-    ({...index, versions: [...categories.map(mockMeta), ...index.versions]});
+    ({...index, versions: [...BUILT_INS.map(builtInMeta), ...index.versions]});
 
   async function change(baseRevision: unknown, edit: (index: ReferenceIndex) => Promise<void> | void): Promise<ReferenceView> {
     return serial(async () => {
@@ -86,7 +89,8 @@ export function createReferenceStore({dir, now = () => new Date()}: {dir: string
   }
 
   async function rowsOf(index: ReferenceIndex, id: string): Promise<DatasetRow[]> {
-    for (const c of categories) if (id === mockId(c)) return mockRows(c);
+    const builtIn = builtInRows(id);
+    if (builtIn) return builtIn;
     if (!index.versions.some(v => v.id === id)) throw new StoreError('not_found', 'This data version does not exist.');
     const data = JSON.parse(await fs.readFile(path.join(dataDir, `${id}.json`), 'utf8'));
     if (!Array.isArray(data?.rows)) throw new StoreError('invalid', 'The data file for this version is damaged.');
@@ -102,9 +106,11 @@ export function createReferenceStore({dir, now = () => new Date()}: {dir: string
     // a stated problem, never another version's data.
     active: () => serial(async () => {
       const index = await load();
-      const out = {} as Record<Category, {meta: VersionMeta; rows: DatasetRow[]; problem: string | null}>;
+      const out = {} as Record<Category, {meta: VersionMeta | null; rows: DatasetRow[]; problem: string | null}>;
       for (const c of categories) {
-        const meta = view(index).versions.find(v => v.id === index.active[c]) ?? mockMeta(c);
+        // Switched off, or pointing at a version that no longer exists: no rows, never another version's.
+        const meta = view(index).versions.find(v => v.id === index.active[c]) ?? null;
+        if (!meta) { out[c] = {meta: null, rows: [], problem: index.active[c] ? 'The active version no longer exists.' : null}; continue; }
         try { out[c] = {meta, rows: await rowsOf(index, meta.id), problem: null}; }
         catch { out[c] = {meta, rows: [], problem: `The data file for ${meta.label} could not be read.`}; }
       }
@@ -135,15 +141,21 @@ export function createReferenceStore({dir, now = () => new Date()}: {dir: string
     }),
 
     activate: (category: Category, id: string, baseRevision: unknown) => change(baseRevision, index => {
-      const exists = id === mockId(category) || index.versions.some(v => v.id === id && v.category === category);
+      const exists = isBuiltIn(id, category) || index.versions.some(v => v.id === id && v.category === category);
       if (!exists) throw new StoreError('not_found', 'This data version does not exist in that category.');
       index.active[category] = id;
+    }),
+
+    // Switch every version of a category off. The engine then has no data for it, and says so.
+    deactivate: (category: Category, baseRevision: unknown) => change(baseRevision, index => {
+      if (!categories.includes(category)) throw new StoreError('invalid', 'Unknown data category.');
+      index.active[category] = null;
     }),
 
     // Only an inactive upload can be deleted. Its file is moved to backups, not erased.
     remove: (id: string, baseRevision: unknown) => change(baseRevision, async index => {
       const meta = index.versions.find(v => v.id === id);
-      if (!meta) throw new StoreError('not_found', categories.some(c => id === mockId(c)) ? 'The built-in mock cannot be deleted.' : 'This data version does not exist.');
+      if (!meta) throw new StoreError('not_found', isBuiltIn(id) ? 'A built-in version cannot be deleted.' : 'This data version does not exist.');
       if (index.active[meta.category] === id) throw new StoreError('invalid', 'This version is active. Activate another one first.');
       const from = path.join(dataDir, `${id}.json`);
       await fs.mkdir(path.join(backupDir, 'datasets'), {recursive: true});

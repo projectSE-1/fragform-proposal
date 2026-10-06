@@ -14,8 +14,9 @@ export type ReferenceInUse = {
   materialsMock: boolean; limitsMock: boolean;
   known: (materialId: string) => boolean;
 };
-const label = (meta: {builtIn: boolean; label: string; fileName: string | null} | undefined) =>
-  !meta || meta.builtIn ? 'Built-in sample' : `${meta.label}${meta.fileName ? ` · ${meta.fileName}` : ''}`;
+// Not loaded yet (or offline): the built-in sample. Loaded but switched off: no active version.
+const label = (loaded: boolean, meta: {builtIn: boolean; label: string; fileName: string | null} | null | undefined) =>
+  !loaded ? 'Built-in sample' : !meta ? 'No active version' : meta.builtIn ? meta.label : `${meta.label}${meta.fileName ? ` · ${meta.fileName}` : ''}`;
 
 export function useReference(): ReferenceInUse {
   const {reference} = useDemo();
@@ -25,8 +26,9 @@ export function useReference(): ReferenceInUse {
     const ids = new Set(materials.map(x => x.id));
     return {
       materials, rules: toLimitRules(l ? l.rows : mockRows('limits')),
-      materialsLabel: label(m?.meta), limitsLabel: label(l?.meta),
-      materialsMock: !m || m.meta.builtIn, limitsMock: !l || l.meta.builtIn,
+      materialsLabel: label(!!m, m?.meta), limitsLabel: label(!!l, l?.meta),
+      // True only for the invented sample versions (mock-odour.ts, limit-check-fixtures.ts).
+      materialsMock: !m || m.meta?.id === 'mock-materials', limitsMock: !l || l.meta?.id === 'mock-limits',
       known: (id: string) => ids.has(id),
     };
   }, [reference]);

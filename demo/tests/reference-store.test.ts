@@ -89,3 +89,28 @@ test('a damaged index returns every category to mock and keeps the uploaded file
   assert.equal(ref.active.materials, 'mock-materials');
   assert.equal((await fs.readdir(path.join(dir, 'datasets'))).length, 1);
 });
+
+test('switching a category off leaves no rows, never another version; switching on again restores it', async () => {
+  const {store} = await setup();
+  const r0 = (await store.read()).revision;
+  const off = await store.deactivate('limits', r0);
+  assert.equal(off.active.limits, null);
+  const active = await store.active();
+  assert.equal(active.limits.meta, null);
+  assert.deepEqual(active.limits.rows, []);
+  assert.equal(active.materials.meta?.id, 'mock-materials', 'the other category is untouched');
+  const on = await store.activate('limits', 'mock-limits', off.revision);
+  assert.equal(on.active.limits, 'mock-limits');
+});
+
+test('the public built-ins carry no invented values: identity and molecular weight only, and no rules', async () => {
+  const {store} = await setup();
+  const rows = await store.rows('public-materials');
+  assert.equal(rows.length, 8);
+  for (const r of rows) {
+    assert.ok(r.CAS && r['Name (TGSC)'] && r['MW (g/mol)']);
+    for (const c of ['Psat_25C_Pa', 'TGSC ODT', 'TGSC Tenacity (hours)']) assert.equal(r[c], undefined, `${r.CAS} ${c}`);
+  }
+  assert.deepEqual(await store.rows('public-limits'), []);
+  await assert.rejects(store.remove('public-materials', (await store.read()).revision), e => code(e) === 'not_found');
+});

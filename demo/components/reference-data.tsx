@@ -45,7 +45,8 @@ export function ReferenceDataPage() {
 
   const versions = index?.versions.filter(v => v.category === category) ?? [];
   const activeId = index?.active[category] ?? '';
-  const viewing = versions.find(v => v.id === viewingId) ?? versions.find(v => v.id === activeId);
+  const viewing = versions.find(v => v.id === viewingId) ?? versions.find(v => v.id === activeId) ?? versions[0];
+  const nameOf = (v: VersionMeta) => v.builtIn ? t(v.label, v.labelTh ?? v.label) : t(v.label, `อัปโหลด v${v.number}`);
   useEffect(() => {
     if (!viewing) return;
     let live = true; setRows(null);
@@ -54,11 +55,15 @@ export function ReferenceDataPage() {
   }, [viewing?.id, notify]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const after = async (message: [string, string]) => { await refresh(); reloadReference(); notify(t(...message)); };
-  async function activate(v: VersionMeta) {
+  // On turns this version on and every other version of the category off. Off leaves the category
+  // with no active version: formulas then show no data for it, never another version's values.
+  async function toggle(v: VersionMeta, on: boolean) {
     if (!index || !admin) return;
     setBusy(true);
-    try { await referenceApi.activate(role, index.revision, category, v.id); await after([`${v.label} is now the active ${CATEGORY_COPY[category].en.toLowerCase()}.`, `${v.label} เป็น${CATEGORY_COPY[category].th}ที่ใช้งานอยู่แล้ว`]); }
-    catch (e) { notify((e as Error).message); await refresh(); }
+    try {
+      if (on) { await referenceApi.activate(role, index.revision, category, v.id); await after([`${v.label} is on. Formulas now use it.`, `เปิดใช้ ${nameOf(v)} แล้ว สูตรใช้ข้อมูลนี้`]); }
+      else { await referenceApi.deactivate(role, index.revision, category); await after([`${v.label} is off. No ${CATEGORY_COPY[category].en.toLowerCase()} is active, so formulas show no data for it.`, `ปิด ${nameOf(v)} แล้ว ไม่มี${CATEGORY_COPY[category].th}ที่ใช้งาน สูตรจะแสดงว่าไม่มีข้อมูล`]); }
+    } catch (e) { notify((e as Error).message); await refresh(); }
     setBusy(false);
   }
   async function remove(v: VersionMeta) {
@@ -84,20 +89,20 @@ export function ReferenceDataPage() {
 
     {loadError ? <Notice tone="red">{t(`Reference data could not be loaded: ${loadError}`, `โหลดข้อมูลอ้างอิงไม่ได้: ${loadError}`)}</Notice> : !index ? <p className="muted">{t('Loading…', 'กำลังโหลด…')}</p> : <>
       <Panel>
-        <div className="panel-heading"><div><h2>{t('Versions', 'เวอร์ชัน')}</h2><p className="muted small">{t('The active version is what every formula is checked against. Uploads start inactive.', 'เวอร์ชันที่ใช้งานอยู่คือข้อมูลที่ทุกสูตรใช้ตรวจ ไฟล์ที่อัปโหลดเริ่มต้นแบบยังไม่ใช้งาน')}</p></div></div>
+        <div className="panel-heading"><div><h2>{t('Versions', 'เวอร์ชัน')}</h2><p className="muted small">{t('Switch one version on: every formula is checked against it. Switching it off leaves no data for this category. Uploads start off.', 'เปิดใช้หนึ่งเวอร์ชัน ทุกสูตรจะตรวจกับข้อมูลนั้น ถ้าปิดจะไม่มีข้อมูลสำหรับหมวดนี้ ไฟล์ที่อัปโหลดเริ่มต้นแบบปิด')}</p></div></div>
         <div className="table-wrap"><table className="data-table ref-versions">
-          <thead><tr><th scope="col">{t('Version', 'เวอร์ชัน')}</th><th scope="col">{t('File', 'ไฟล์')}</th><th scope="col">{t('Uploaded', 'อัปโหลดเมื่อ')}</th><th scope="col">{t('Rows', 'แถว')}</th><th scope="col">{t('Status', 'สถานะ')}</th><th scope="col"><span className="sr-only">{t('Actions', 'การทำงาน')}</span></th></tr></thead>
+          <thead><tr><th scope="col">{t('Version', 'เวอร์ชัน')}</th><th scope="col">{t('File', 'ไฟล์')}</th><th scope="col">{t('Uploaded', 'อัปโหลดเมื่อ')}</th><th scope="col">{t('Rows', 'แถว')}</th><th scope="col">{t('In use', 'ใช้งาน')}</th><th scope="col"><span className="sr-only">{t('Actions', 'การทำงาน')}</span></th></tr></thead>
           <tbody>{versions.map(v => {
             const active = v.id === activeId;
             return <tr key={v.id} className={viewing?.id === v.id ? 'ref-viewing' : ''}>
-              <td><strong>{v.builtIn ? t('Built-in sample', 'ตัวอย่างในตัว') : t(v.label, `อัปโหลด v${v.number}`)}</strong></td>
+              <td><strong>{nameOf(v)}</strong>{v.note && <span className="small muted ref-sub">{t(v.note, v.noteTh ?? v.note)}</span>}</td>
               <td className="ref-file">{v.fileName ?? '—'}{v.sha256 && <span className="small muted ref-sub" title={v.sha256}>sha256 {v.sha256.slice(0, 12)}…</span>}</td>
               <td className="muted">{shortDate(v.uploadedAt)}</td>
               <td className="ref-num">{v.rows}</td>
-              <td>{active ? <Badge tone="green"><Icon name="check" size={12}/>{t('Active', 'ใช้งานอยู่')}</Badge> : <Badge>{t('Inactive', 'ไม่ได้ใช้งาน')}</Badge>}{v.warningCount > 0 && <span className="small muted ref-sub">{t(`${v.warningCount} warnings at upload`, `คำเตือน ${v.warningCount} รายการตอนอัปโหลด`)}</span>}</td>
+              <td><span className="ref-switch-cell"><button type="button" role="switch" aria-checked={active} disabled={!admin || busy} className={`ref-switch ${active ? 'on' : ''}`}
+                aria-label={t(`Use ${v.label}`, `ใช้ ${nameOf(v)}`)} onClick={() => toggle(v, !active)}><span className="ref-switch-knob"/></button>{active ? t('On', 'เปิด') : t('Off', 'ปิด')}</span>{v.warningCount > 0 && <span className="small muted ref-sub">{t(`${v.warningCount} warnings at upload`, `คำเตือน ${v.warningCount} รายการตอนอัปโหลด`)}</span>}</td>
               <td className="ref-actions">
                 <button className="button ghost" onClick={() => setViewingId(v.id)} aria-pressed={viewing?.id === v.id}>{t('View', 'ดู')}</button>
-                {admin && !active && <button className="button secondary" disabled={busy} onClick={() => activate(v)}>{t('Activate', 'ใช้งาน')}</button>}
                 {admin && !active && !v.builtIn && (confirmDelete === v.id
                   ? <span className="ref-confirm">{t('Delete?', 'ลบ?')} <button className="button ghost danger" disabled={busy} onClick={() => remove(v)}>{t('Yes, delete', 'ลบ')}</button><button className="button ghost" onClick={() => setConfirmDelete('')}>{t('No', 'ไม่')}</button></span>
                   : <button className="icon-button" aria-label={t(`Delete ${v.label}`, `ลบ ${v.label}`)} title={t('Delete', 'ลบ')} onClick={() => setConfirmDelete(v.id)}><Icon name="trash" size={16}/></button>)}
@@ -107,11 +112,11 @@ export function ReferenceDataPage() {
         </table></div>
       </Panel>
 
-      {admin ? <UploadPanel category={category} index={index} onSaved={async (label) => { const ref = await refresh(); const v = ref?.versions.find(x => x.category === category && x.label === label); if (v) setViewingId(v.id); notify(t(`${label} saved. It is inactive until you activate it.`, `บันทึก ${label} แล้ว จะใช้งานเมื่อกดใช้งานเท่านั้น`)); }}/>
+      {admin ? <UploadPanel category={category} index={index} onSaved={async (label) => { const ref = await refresh(); const v = ref?.versions.find(x => x.category === category && x.label === label); if (v) setViewingId(v.id); notify(t(`${label} saved. It stays off until you switch it on.`, `บันทึก ${label} แล้ว จะใช้งานเมื่อเปิดสวิตช์เท่านั้น`)); }}/>
         : <Notice>{t('Uploading and switching versions needs the system_admin persona (top-right menu).', 'การอัปโหลดและสลับเวอร์ชันต้องใช้บทบาท system_admin (เมนูมุมขวาบน)')}</Notice>}
 
       {viewing && <DataViewer category={category} version={viewing} active={viewing.id === activeId} rows={rows} activeRules={activeRules}
-        limitsLabel={index.versions.find(v => v.id === index.active.limits)?.label ?? ''}/>}
+        limitsLabel={index.versions.find(v => v.id === index.active.limits)?.label ?? t('No active version', 'ไม่มีเวอร์ชันที่ใช้งาน')}/>}
     </>}
   </div>;
 }
@@ -152,7 +157,7 @@ function UploadPanel({category, index, onSaved}: {category: Category; index: Ref
 
   return <Panel className="ref-upload">
     <div className="panel-heading"><div><h2>{t(`Upload a new version (v${next})`, `อัปโหลดเวอร์ชันใหม่ (v${next})`)}</h2>
-      <p className="muted small">{t('CSV with the header row from the template. Check first; only a file with no errors can be saved. Saving never activates it.', 'ไฟล์ CSV ที่มีหัวตารางตามแม่แบบ ตรวจก่อน บันทึกได้เฉพาะไฟล์ที่ไม่มีข้อผิดพลาด และการบันทึกไม่ได้เปิดใช้งานทันที')}</p></div>
+      <p className="muted small">{t('CSV with the header row from the template. Check first; only a file with no errors can be saved. Saving never switches it on.', 'ไฟล์ CSV ที่มีหัวตารางตามแม่แบบ ตรวจก่อน บันทึกได้เฉพาะไฟล์ที่ไม่มีข้อผิดพลาด และการบันทึกไม่ได้เปิดใช้งานทันที')}</p></div>
       <div className="row"><button className="button ghost" onClick={template}><Icon name="download" size={15}/>{t('Template', 'แม่แบบ')}</button><button className="button ghost" onClick={sample}><Icon name="download" size={15}/>{t('Sample as CSV', 'ตัวอย่างเป็น CSV')}</button></div></div>
     <div className="ref-upload-row">
       <label className="button secondary ref-file-pick"><Icon name="upload" size={16}/>{file ? file.name : t('Choose CSV file', 'เลือกไฟล์ CSV')}<input type="file" accept=".csv,text/csv" className="sr-only" onChange={e => void choose(e.currentTarget)}/></label>
@@ -205,7 +210,7 @@ function DataViewer({category, version, active, rows, activeRules, limitsLabel}:
   const selectedRow = rows?.find(r => r.CAS === selected);
 
   return <Panel className="ref-viewer">
-    <div className="panel-heading"><div><h2>{version.builtIn ? t('Built-in sample', 'ตัวอย่างในตัว') : version.label} {active && <Badge tone="green">{t('Active', 'ใช้งานอยู่')}</Badge>}</h2>
+    <div className="panel-heading"><div><h2>{version.builtIn ? t(version.label, version.labelTh ?? version.label) : version.label} {active && <Badge tone="green">{t('Active', 'ใช้งานอยู่')}</Badge>}</h2>
       <p className="muted small">{category === 'materials' ? t('Read only. Select a substance to see every limit that names it.', 'อ่านอย่างเดียว เลือกสารเพื่อดูเกณฑ์ทั้งหมดที่เกี่ยวข้อง') : t('Read only. Search by CAS to see every rule for one substance.', 'อ่านอย่างเดียว ค้นหาด้วย CAS เพื่อดูเกณฑ์ทั้งหมดของสารหนึ่งชนิด')}</p></div>
       <div className="row ref-viewer-tools">
         <label className="sr-only" htmlFor="ref-search">{t('Search', 'ค้นหา')}</label>
