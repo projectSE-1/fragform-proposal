@@ -1,7 +1,7 @@
 <!-- AI Perfumery Engine project documentation; ownership follows the owner's existing agreement. No new licence is granted. -->
-# Diagrams (D1–D4)
+# Diagrams (D1–D5)
 
-**Updated:** 2026-10-04. These diagrams describe [mvp-scope.md](mvp-scope.md), adopting the source frontend's waves 0–5 with [Honney's technology stack](tech-stack.md). They replace the 2026-09-16 single formula-view workflow. Actors/actions follow [roles-permissions.md](roles-permissions.md); requirements follow [../01-requirements/backlog.md](../01-requirements/backlog.md). They describe the target design, not deployed components.
+**Updated:** 2026-10-06 (D4 analysis step and D5 added for the weighting and evaporation-model toggles). Otherwise 2026-10-04. These diagrams describe [mvp-scope.md](mvp-scope.md), adopting the source frontend's waves 0–5 with [Honney's technology stack](tech-stack.md). They replace the 2026-09-16 single formula-view workflow. Actors/actions follow [roles-permissions.md](roles-permissions.md); requirements follow [../01-requirements/backlog.md](../01-requirements/backlog.md). They describe the target design, not deployed components.
 
 ## D1 — System context
 
@@ -149,7 +149,7 @@ flowchart TD
     Fix --> Editor
     Save -->|valid| Version[Explicit immutable version; reject stale base]
     Version --> Analyze[Authorized analysis: snapshot / seed / models]
-    Analyze --> Physics[Physics / perception / uncertainty with real progress]
+    Analyze --> Physics[Physics / perception / uncertainty for the user-selected weighting and evaporation model]
     Analyze --> Compliance[Separate jurisdiction-aware compliance]
     Physics --> Result[Results or missing states; full provenance]
     Compliance --> Result
@@ -173,3 +173,43 @@ flowchart TD
 A missing result is not zero or success. Unavailable models, uncertainty policy, density/calibration or regulatory sources return the relevant missing state and gate dependent work. A weighing BLOCK records the observation while locking progress; no role bypasses it. Reweighing appends a reasoned superseding record. Document completeness is information, not a standalone gate; a sourced hard block has no dismiss/skip path.
 
 The diagram does not approve tolerances, warning thresholds, target-market overrides, production release, regulatory label/export/notification or automatic formula derivation from measured outcomes. They need separate approved requirements/domain decisions.
+
+## D5 — Analysis charts: user-selected weighting and evaporation model
+
+Both charts in FR-009/FR-010 are drawn from whatever the user selects. The engine serves exactly the requested option and never substitutes another one; an option whose inputs are missing returns `MissingValue` naming them. Decisions: [calculation-engine.md](calculation-engine.md) §6.1–6.3.
+
+```mermaid
+flowchart LR
+    subgraph CLIENT[Next.js: chart toolbar]
+        TW[Weighting: mass / odour units / perceived strength]
+        TM[Evaporation model: each alone / Raoult mixture / tenacity]
+        TR[Time range: 15 min / 1 h / 8 h / 24 h]
+        TS[Scale: linear / fit / log, client-side only]
+    end
+    subgraph SERVER[Go API]
+        ORCH[EvaluationService: loads formula and reference snapshots]
+        subgraph ENGINE[Pure engine]
+            W{Weighting}
+            W -->|mass| WM[Exact share by weight]
+            W -->|odour units| WO["Amount / detection threshold"]
+            W -->|perceived strength| WS["Amount x approved strength number"]
+            P{Model}
+            P -->|each alone| PI["J = k x Psat / (R x T)"]
+            P -->|Raoult| PR["Psat x mole fraction, stepped through time"]
+            P -->|tenacity| PT[Measured hours, no equation]
+            REF[Fixed stated reference: blotter, still air, 25 C, 1 mg/cm2]
+        end
+    end
+    TW -->|weighting| ORCH
+    TM -->|model| ORCH
+    TR -->|range| ORCH
+    ORCH --> W
+    ORCH --> P
+    REF --> PI
+    REF --> PR
+    ENGINE -->|value or MissingValue per option, with inputs used and availability| CLIENT
+```
+
+Inputs come from the owner dataset: `Psat_25C_Pa`, `MW (g/mol)`, `TGSC Tenacity (hours)`, the detection threshold and the categorical strength ([../00-context/dataset-structure.md](../00-context/dataset-structure.md)). In the sample, the threshold is empty in 10 of 10 substances and the strength mapping is unapproved, so those two weightings return `MissingValue` on real data. No option is owner-approved yet; which one is the default is her decision. Skin temperature, spray area and airflow are not modelled.
+
+The public demo runs the same equations in the browser on invented inputs, labelled as mock, because the owner dataset may not enter a public repository. In the product, curves are computed on the server (D3).
