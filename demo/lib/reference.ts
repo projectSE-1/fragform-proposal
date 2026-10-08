@@ -9,6 +9,7 @@ import {parseCsv} from './csv.ts';
 import {materials} from './model.ts';
 import {mockOdour} from './mock-odour.ts';
 import {demoLimitStandard, demoStandardLimits} from './limit-check-fixtures.ts';
+import {publishedLimitRows} from './published-limits.ts';
 
 export const categories = ['materials', 'limits'] as const;
 export type Category = typeof categories[number];
@@ -158,6 +159,8 @@ export const BUILT_INS: {id: string; category: Category; label: string; labelTh:
   {id: 'public-materials', category: 'materials', label: 'Built-in public data', labelTh: 'ข้อมูลสาธารณะในตัว', note: 'Identity and molecular weight only; no measured properties', noteTh: 'มีเพียงชื่อ CAS และน้ำหนักโมเลกุล ไม่มีค่าที่วัด'},
   {id: 'mock-limits', category: 'limits', label: 'Built-in sample', labelTh: 'ตัวอย่างในตัว', note: 'Demo rules for the walkthrough formula', noteTh: 'เกณฑ์สาธิตสำหรับสูตรตัวอย่าง'},
   {id: 'public-limits', category: 'limits', label: 'Built-in empty', labelTh: 'ว่างในตัว', note: 'No rules: every substance shows no limit data', noteTh: 'ไม่มีเกณฑ์: ทุกสารแสดงว่าไม่มีข้อมูลเกณฑ์'},
+  {id: 'ifra-limits', category: 'limits', label: 'Built-in published limits (IFRA 51)', labelTh: 'เกณฑ์ที่เผยแพร่ในตัว (IFRA 51)',
+   note: 'Transcribed from the published IFRA Standards; real citations, real IFRA categories', noteTh: 'ถอดจากมาตรฐาน IFRA ที่เผยแพร่ มีการอ้างอิงจริงและใช้หมวดหมู่ IFRA จริง'},
 ];
 // Public facts only: identity, a general odour family and molecular weight (g/mol).
 const PUBLIC_MATERIALS: [string, string, string, string][] = [
@@ -170,6 +173,7 @@ export function builtInRows(id: string): DatasetRow[] | null {
   if (id === 'mock-materials') return mockRows('materials');
   if (id === 'mock-limits') return mockRows('limits');
   if (id === 'public-materials') return PUBLIC_MATERIALS.map(([cas, name, type, mw]) => ({CAS: cas, 'Name (TGSC)': name, 'TGSC Odor Type': type, 'MW (g/mol)': mw}));
+  if (id === 'ifra-limits') return publishedLimitRows();
   if (id === 'public-limits') return [];
   return null;
 }

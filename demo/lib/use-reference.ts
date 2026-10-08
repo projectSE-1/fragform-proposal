@@ -12,6 +12,9 @@ export type ReferenceInUse = {
   materials: MaterialRef[]; rules: LimitRule[];
   materialsLabel: string; limitsLabel: string;
   materialsMock: boolean; limitsMock: boolean;
+  // True for the built-in transcription of the published IFRA Standards: real values, real
+  // citations, so the screen must not call it a demo table nor claim it was uploaded here.
+  limitsPublished: boolean;
   known: (materialId: string) => boolean;
 };
 // Not loaded yet (or offline): the built-in sample. Loaded but switched off: no active version.
@@ -29,6 +32,7 @@ export function useReference(): ReferenceInUse {
       materialsLabel: label(!!m, m?.meta), limitsLabel: label(!!l, l?.meta),
       // True only for the invented sample versions (mock-odour.ts, limit-check-fixtures.ts).
       materialsMock: !m || m.meta?.id === 'mock-materials', limitsMock: !l || l.meta?.id === 'mock-limits',
+      limitsPublished: l?.meta?.id === 'ifra-limits',
       known: (id: string) => ids.has(id),
     };
   }, [reference]);
